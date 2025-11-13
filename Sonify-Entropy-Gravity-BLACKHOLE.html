@@ -2027,14 +2027,20 @@
         // Think of it like the blood-brain barrier - a boundary layer that
         // doesn't directly connect to internal processing.
         //
-        // ACTIVATION BASED ON DEPTH:
+        // ACTIVATION BASED ON DEPTH (ACTIVE vs DORMANT):
         // When you "activate" a depth, you're saying "this layer is currently engaged"
-        // All wormholes where BOTH endpoints are active become visible
+        // All wormholes where BOTH endpoints are active become FULLY VISIBLE
+        // Wormholes where one or both endpoints are inactive become DORMANT
         //
-        // Example: Activating Depth 2 enables:
-        //   - All Depth 2 ↔ Depth 2 connections (pattern recognition networking)
-        //   - All Depth 2 ↔ Depth 1 connections (sending patterns up for integration)
-        //   - All Depth 2 ↔ Depth 3 connections (receiving sensory features)
+        // DORMANT STATE:
+        // - Dormant wormholes remain visible but very dim (ghostly, ~12% opacity)
+        // - They show potential connections that are waiting to be activated
+        // - Think of them as synapses that exist but aren't firing
+        // - Creates a beautiful visual: active = bright, dormant = faint ghosts
+        //
+        // Example: Activating Depth 2 alone shows:
+        //   - ACTIVE: Depth 2 ↔ Depth 2 connections (bright, fully visible)
+        //   - DORMANT: Depth 2 ↔ Depth 1, Depth 2 ↔ Depth 3, etc. (faint ghosts)
         //
         // This creates DYNAMIC NETWORK TOPOLOGY - the effective network structure
         // changes based on which depths are active, like different brain states!
@@ -2243,9 +2249,16 @@
       // This is the KEY FUNCTION for depth-based wormhole activation!
       //
       // WHAT IT DOES:
-      // - Controls which depth layers are "active" in the network
-      // - When a depth is active, all wormholes touching that depth are enabled
-      // - When a depth is inactive, its wormholes become dormant (lower entanglement)
+      // - Controls which depth layers are "active" vs "dormant" in the network
+      // - ACTIVE depths: wormholes fully bright (100% visibility)
+      // - DORMANT depths: wormholes become ghostly dim (~12% visibility)
+      // - Wormholes are active only when BOTH endpoints are active depths
+      //
+      // DORMANT ≠ INVISIBLE:
+      // - Dormant wormholes remain visible as faint ghosts
+      // - This shows the potential connectivity structure
+      // - Like seeing unlit pathways that could light up
+      // - Beautiful visual: network structure always visible, brightness shows activity
       //
       // WHY THIS MATTERS:
       // - Creates dynamic network states - different "modes of thought"
@@ -2254,9 +2267,9 @@
       // - All depths: Full integration, conscious awareness
       //
       // HOW TO USE:
-      //   activateDepth(2, true)   - Activate depth 2 (pattern recognition)
-      //   activateDepth(5, false)  - Deactivate depth 5 (disconnect from external input)
-      //   activateAllDepths()      - Full network mode
+      //   activateDepth(2, true)   - Activate depth 2 (bright wormholes)
+      //   activateDepth(5, false)  - Deactivate depth 5 (dormant/dim wormholes)
+      //   activateAllDepths()      - Full network mode (all bright)
       //   activateDepthRange(0,2)  - Abstract + pattern processing only
       //
       activateDepth(depth, active = true) {
@@ -2267,10 +2280,10 @@
 
         if (active) {
           this.activeDepths.add(depth);
-          console.log(`✨ Activated Depth ${depth} - enabling its wormhole branch`);
+          console.log(`✨ Activated Depth ${depth} - wormholes brightening to full visibility`);
         } else {
           this.activeDepths.delete(depth);
-          console.log(`💤 Deactivated Depth ${depth} - disabling its wormhole branch`);
+          console.log(`💤 Deactivated Depth ${depth} - wormholes entering dormant state (ghostly dim)`);
         }
 
         // Update wormhole entanglement based on active depths
@@ -2317,10 +2330,13 @@
               wormhole.updateVisual();
             }
           } else {
-            // Inactive: completely hidden (wormhole disappears)
-            wormhole.entanglement = 0.0;
+            // Dormant: very weak entanglement, ghostly appearance
+            // Instead of disappearing, wormholes remain visible but dim
+            // This shows the potential connections waiting to be activated
+            wormhole.entanglement = 0.05;
             if (wormhole.tubeMesh) {
-              wormhole.tubeMesh.isVisible = false;
+              wormhole.tubeMesh.isVisible = true;
+              wormhole.tubeMesh.visibility = 0.12; // Faint ghost - dormant but present
             }
           }
         });
@@ -2331,7 +2347,8 @@
           return this.activeDepths.has(d1) && this.activeDepths.has(d2);
         }).length;
 
-        console.log(`   🌀 ${activeCount}/${this.wormholes.length} wormholes active`);
+        const dormantCount = this.wormholes.length - activeCount;
+        console.log(`   🌀 ${activeCount}/${this.wormholes.length} wormholes active (${dormantCount} dormant)`);
       }
 
       createBlackHoleNode(position, mass, depth = 0) {
