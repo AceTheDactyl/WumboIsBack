@@ -1134,29 +1134,83 @@
     class BlackHoleMetrics {
       constructor(massInSolarMasses) {
         this.mass = massInSolarMasses;
+
+        // ========================================
+        // HELIX STATE: Consciousness Coordinates
+        // ========================================
+        // Each black hole has helix state (θ, z, r) encoding its consciousness/field properties
+        // θ (theta): Phase alignment/rotation (0-2π radians)
+        //   - Rotates continuously, influences entropy/temperature modulation
+        //   - Synchronized θ between holes = stronger wormhole connection
+        // z (elevation): Field strength/coherence (0-1)
+        //   - Higher z = stronger gravitational field effects
+        //   - Modulates entropy and temperature
+        // r (radius): Structural coherence (0.5-1.5)
+        //   - r = 1.0: Neutral, standard physics
+        //   - r > 1.0: Enhanced coherence, stronger fields
+        //   - r < 1.0: Degraded coherence, weaker fields
+        //
+        this.helixState = {
+          theta: Math.random() * Math.PI * 2,  // Random initial phase
+          z: 0.5,                                // Start at moderate strength
+          r: 1.0,                                // Start at neutral coherence
+          rotationSpeed: 0.01                    // Angular velocity (rad/frame)
+        };
+
         this.updateMetrics();
       }
-      
+
       updateMetrics() {
         const M = this.mass * PHYSICS_CONSTANTS.SOLAR_MASS;
-        
+
         // Schwarzschild radius: R_s = 2GM/c²
-        this.schwarzschildRadius = (2 * PHYSICS_CONSTANTS.G * M) / 
+        this.schwarzschildRadius = (2 * PHYSICS_CONSTANTS.G * M) /
                                      (PHYSICS_CONSTANTS.C ** 2);
-        
+
         // Event horizon area: A = 4πR_s²
         this.horizonArea = 4 * Math.PI * (this.schwarzschildRadius ** 2);
-        
-        // Bekenstein-Hawking entropy: S = (k_B * c³ * A) / (4 * G * ℏ)
-        this.entropy = (PHYSICS_CONSTANTS.K_B * (PHYSICS_CONSTANTS.C ** 3) * this.horizonArea) / 
+
+        // ========================================
+        // HELIX-MODULATED THERMODYNAMICS
+        // ========================================
+        // Base calculations use standard physics
+        // Helix state (θ, z, r) modulates these values
+        //
+
+        // Base Bekenstein-Hawking entropy: S = (k_B * c³ * A) / (4 * G * ℏ)
+        const S_base = (PHYSICS_CONSTANTS.K_B * (PHYSICS_CONSTANTS.C ** 3) * this.horizonArea) /
                        (4 * PHYSICS_CONSTANTS.G * PHYSICS_CONSTANTS.HBAR);
-        
-        // Hawking temperature: T = (ℏ * c³) / (8π * G * M * k_B)
-        this.temperature = (PHYSICS_CONSTANTS.HBAR * (PHYSICS_CONSTANTS.C ** 3)) / 
-                          (8 * Math.PI * PHYSICS_CONSTANTS.G * M * PHYSICS_CONSTANTS.K_B);
-        
-        // Information bits: A / l_P²
-        this.infoBits = this.horizonArea / (PHYSICS_CONSTANTS.PLANCK_LENGTH ** 2);
+
+        // Helix modulation factor
+        // z increases entropy (higher coherence = more information)
+        // r modulates stability (coherent structure affects entropy encoding)
+        // theta creates oscillation (phase affects observable entropy)
+        const helixEntropyMod = (0.8 + 0.4 * this.helixState.z) *   // z factor: 0.8-1.2
+                                 this.helixState.r *                   // r factor: 0.5-1.5
+                                 (1 + 0.1 * Math.sin(this.helixState.theta)); // theta oscillation: ±10%
+
+        this.entropy = S_base * helixEntropyMod;
+        this.baseEntropy = S_base; // Store base value for reference
+
+        // Base Hawking temperature: T = (ℏ * c³) / (8π * G * M * k_B)
+        const T_base = (PHYSICS_CONSTANTS.HBAR * (PHYSICS_CONSTANTS.C ** 3)) /
+                       (8 * Math.PI * PHYSICS_CONSTANTS.G * M * PHYSICS_CONSTANTS.K_B);
+
+        // Helix modulation for temperature
+        // Inverse relationship: higher z = lower temperature (more ordered state)
+        // r affects thermal stability
+        // theta creates thermal oscillations
+        const helixTempMod = (1.2 - 0.4 * this.helixState.z) *      // z factor: 0.8-1.2 (inverse)
+                             this.helixState.r *                      // r factor: 0.5-1.5
+                             (1 + 0.05 * Math.cos(this.helixState.theta)); // theta oscillation: ±5%
+
+        this.temperature = T_base * helixTempMod;
+        this.baseTemperature = T_base; // Store base value
+
+        // Information bits: A / l_P² (also modulated by helix)
+        const infoBits_base = this.horizonArea / (PHYSICS_CONSTANTS.PLANCK_LENGTH ** 2);
+        this.infoBits = infoBits_base * (1 + 0.2 * this.helixState.z * this.helixState.r);
+        this.baseInfoBits = infoBits_base;
       }
       
       setMass(massInSolarMasses) {
@@ -1164,8 +1218,13 @@
         this.updateMetrics();
       }
 
-      // Calculate entropic force on a particle
+      // ========================================
+      // HELIX-ENHANCED ENTROPIC FORCE
+      // ========================================
+      // Calculate entropic force on a particle with helical magnetic field effects
       // F = T ∇S where ∇S ≈ 2πr_s / r² (entropy gradient at holographic screen)
+      // PLUS helical magnetic field component that creates spiraling trajectories
+      //
       calculateEntropicForce(particle, forceScale = 1e-3) {
         // Vector from particle to black hole
         const r_vec = particle.body.position.vsub(this.position);
@@ -1177,13 +1236,69 @@
         // Entropy gradient: dS/dr ≈ 2πr_s (approximation for distant screen)
         const dS_dr = 2 * Math.PI * this.schwarzschildRadius;
 
-        // F = T × (dS/dr) / r² (attractive toward black hole)
-        const F_mag = (this.temperature * dS_dr) / (r * r) * forceScale;
+        // Base entropic force: F = T × (dS/dr) / r² (attractive toward black hole)
+        const F_base_mag = (this.temperature * dS_dr) / (r * r) * forceScale;
+
+        // ========================================
+        // HELIX FIELD MODULATION
+        // ========================================
+        // z increases force strength (higher coherence = stronger pull)
+        // r affects stability of force (coherent structure = stable field)
+        // theta creates phase-dependent oscillations
+        //
+        const helixForceMod = (0.9 + 0.2 * this.helixState.z) *  // z factor: 0.9-1.1
+                              this.helixState.r;                   // r factor: 0.5-1.5
+
+        const F_mag = F_base_mag * helixForceMod;
 
         // Direction: toward black hole (negative of r_vec)
-        const F_vec = r_vec.scale(-F_mag / r);
+        const F_radial = r_vec.scale(-F_mag / r);
 
-        return F_vec;
+        // ========================================
+        // HELICAL MAGNETIC FIELD COMPONENT
+        // ========================================
+        // Creates tangential force perpendicular to radial direction
+        // Causes particles to spiral rather than fall straight in
+        // Strength proportional to helix strength (z) and coherence (r)
+        //
+
+        // Normalized radial direction
+        const r_hat = r_vec.scale(1 / r);
+
+        // Create perpendicular vector (tangential direction)
+        // Use cross product with arbitrary vector to get perpendicular
+        let arbitrary = new CANNON.Vec3(0, 1, 0);
+        if (Math.abs(r_hat.y) > 0.9) {
+          arbitrary = new CANNON.Vec3(1, 0, 0);
+        }
+
+        let tangent1 = r_hat.cross(arbitrary);
+        if (tangent1.length() > 0.001) {
+          tangent1 = tangent1.scale(1 / tangent1.length());
+        }
+
+        // Second perpendicular direction
+        let tangent2 = r_hat.cross(tangent1);
+        if (tangent2.length() > 0.001) {
+          tangent2 = tangent2.scale(1 / tangent2.length());
+        }
+
+        // Helical field strength (falls off with distance)
+        const helixFieldStrength = F_base_mag * this.helixState.z * this.helixState.r * 0.3;
+
+        // Rotating tangential force based on theta phase
+        const helixAngle = this.helixState.theta + (r / 50); // Phase varies with distance
+        const F_tangent_x = Math.cos(helixAngle) * helixFieldStrength;
+        const F_tangent_y = Math.sin(helixAngle) * helixFieldStrength;
+
+        const F_tangent = tangent1.scale(F_tangent_x).vadd(tangent2.scale(F_tangent_y));
+
+        // ========================================
+        // TOTAL FORCE: Radial (entropic) + Tangential (helical magnetic)
+        // ========================================
+        const F_total = F_radial.vadd(F_tangent);
+
+        return F_total;
       }
 
       // Check if particle is inside event horizon
@@ -1557,6 +1672,61 @@
       }
 
       step(dt) {
+        // ========================================
+        // UPDATE BLACK HOLE HELIX STATES
+        // ========================================
+        // Each black hole's helix coordinates evolve over time
+        // Theta rotates continuously
+        // z and r are influenced by particle density and wormhole connections
+        //
+        this.blackHoles.forEach(bh => {
+          // THETA: Continuous rotation
+          bh.helixState.theta += bh.helixState.rotationSpeed;
+
+          // Wrap theta to [0, 2π]
+          if (bh.helixState.theta > Math.PI * 2) {
+            bh.helixState.theta -= Math.PI * 2;
+          }
+
+          // Z (ELEVATION): Influenced by nearby particle density
+          // More particles nearby = higher z (stronger field coherence)
+          let nearbyParticles = 0;
+          this.particles.forEach(p => {
+            const dist = p.body.position.vsub(bh.position).length();
+            if (dist < 300) { // Within influence radius
+              nearbyParticles++;
+            }
+          });
+
+          const particleDensity = Math.min(1.0, nearbyParticles / 50); // Normalize
+          const targetZ = 0.3 + particleDensity * 0.6; // Range 0.3-0.9
+
+          // Smooth interpolation
+          bh.helixState.z += (targetZ - bh.helixState.z) * 0.02;
+          bh.helixState.z = Math.max(0.1, Math.min(1.0, bh.helixState.z));
+
+          // R (COHERENCE): Influenced by wormhole connections
+          // More/stronger wormhole connections = higher coherence
+          if (this.wormholesEnabled) {
+            const connectedWormholes = this.wormholes.filter(w =>
+              (w.bh1 === bh || w.bh2 === bh) && w.entanglement > 0.3
+            );
+
+            const connectionStrength = Math.min(1.0, connectedWormholes.length / 5);
+            const targetR = 0.8 + connectionStrength * 0.4; // Range 0.8-1.2
+
+            bh.helixState.r += (targetR - bh.helixState.r) * 0.03;
+            bh.helixState.r = Math.max(0.5, Math.min(1.5, bh.helixState.r));
+          } else {
+            // Without wormholes, r oscillates slowly
+            const targetR = 1.0 + Math.sin(bh.helixState.theta * 0.5) * 0.1;
+            bh.helixState.r += (targetR - bh.helixState.r) * 0.01;
+          }
+
+          // Update thermodynamic quantities based on new helix state
+          bh.updateMetrics();
+        });
+
         // Rebuild octree for this frame
         this.octree.clear();
         this.blackHoles.forEach(bh => {
@@ -1565,12 +1735,12 @@
 
         let totalForce = 0;
 
-        // Calculate entropic forces
+        // Calculate entropic forces (now helix-enhanced)
         this.particles.forEach(particle => {
           // Query nearby black holes (within 600 units)
           const nearby = this.octree.queryRadius(particle.body.position, 600);
 
-          // Apply forces from each nearby black hole
+          // Apply helix-enhanced entropic forces from each nearby black hole
           nearby.forEach(bh => {
             const F = bh.calculateEntropicForce(particle, this.forceScale);
             particle.body.applyForce(F, particle.body.position);
@@ -1685,6 +1855,33 @@
         const isLIMNUSMode = this.blackHoles.length >= 63;
 
         this.wormholes.forEach(wormhole => {
+          // ========================================
+          // SYNCHRONIZE WORMHOLE HELIX WITH BLACK HOLE HELIX
+          // ========================================
+          // Wormhole helix state is derived from the helix states of both connected black holes
+          // This creates a coherent helical magnetic field between endpoints
+          //
+
+          // Average theta (phase) - wormholes sync with endpoint phases
+          const avgTheta = (wormhole.bh1.helixState.theta + wormhole.bh2.helixState.theta) / 2;
+          const thetaDiff = Math.abs(wormhole.bh1.helixState.theta - wormhole.bh2.helixState.theta);
+
+          // Smoothly update wormhole theta toward average
+          wormhole.helixState.theta += (avgTheta - wormhole.helixState.theta) * 0.1;
+
+          // Average z (elevation) - connection strength based on endpoint strength
+          const avgZ = (wormhole.bh1.helixState.z + wormhole.bh2.helixState.z) / 2;
+          wormhole.helixState.z += (avgZ - wormhole.helixState.z) * 0.05;
+
+          // Average r (coherence) - connection coherence based on endpoint coherence
+          const avgR = (wormhole.bh1.helixState.r + wormhole.bh2.helixState.r) / 2;
+          wormhole.helixState.r += (avgR - wormhole.helixState.r) * 0.05;
+
+          // Rotation speed based on phase synchronization
+          // Synchronized endpoints (small thetaDiff) rotate faster
+          const syncFactor = 1 - Math.min(1, thetaDiff / Math.PI);
+          wormhole.helixState.rotationSpeed = 0.01 + syncFactor * 0.02;
+
           if (isLIMNUSMode) {
             // ========================================
             // LIMNUS MODE: HELICAL MAGNETIC FIELD ANIMATION
@@ -2549,9 +2746,28 @@
       }
 
       emitFromBlackHole(blackHole, dt) {
-        // Emission rate proportional to temperature
+        // ========================================
+        // HELIX-MODULATED HAWKING EMISSION
+        // ========================================
+        // Base emission rate proportional to temperature
         // T ∝ 1/M, so smaller black holes emit more frequently
-        const rate = blackHole.temperature * this.emissionConstant;
+        // Helix state (θ, z, r) modulates emission:
+        //   - Higher z = more coherent emission (higher rate)
+        //   - r affects emission stability
+        //   - theta creates phase-dependent bursts
+        //
+
+        const baseRate = blackHole.temperature * this.emissionConstant;
+
+        // Helix modulation
+        // z increases emission (stronger field = more radiation)
+        // r stabilizes emission
+        // theta creates periodic bursts
+        const helixEmissionMod = (0.8 + 0.4 * blackHole.helixState.z) *  // z factor: 0.8-1.2
+                                  blackHole.helixState.r *                 // r factor: 0.5-1.5
+                                  (1 + 0.15 * Math.cos(blackHole.helixState.theta * 2)); // theta bursts: ±15%
+
+        const rate = baseRate * helixEmissionMod;
 
         // Poisson process: probability of emission in time dt
         const emissionProb = rate * dt;
@@ -3846,6 +4062,46 @@
         // I / l_P² normalized to ~1e125 for solar mass black hole
         this.lambda.σ.mag = Math.min(1.0, blackHole.infoBits / 1e125);
         this.lambda.σ.phase = (this.lambda.ι.phase + Math.PI) % TWO_PI; // Opposite of Memory
+
+        // ========================================
+        // HELIX COORDINATE MAPPING TO LAMBDA STATE
+        // ========================================
+        // Map (θ, z, r) helix coordinates to ℂ⁶ components
+        // This creates bidirectional coupling between helix field and consciousness state
+        //
+
+        if (blackHole.helixState) {
+          const helix = blackHole.helixState;
+
+          // θ (theta): Phase alignment → affects phases of all Lambda components
+          // Creates coherent phase rotation across entire Lambda state
+          const helixPhaseOffset = helix.theta * 0.3; // Scale factor
+          Object.keys(this.lambda).forEach(key => {
+            this.lambda[key].phase = (this.lambda[key].phase + helixPhaseOffset) % TWO_PI;
+          });
+
+          // z (elevation): Field strength → boosts Fox (θ) and Wave (ω)
+          // Higher z = more dynamic, wave-like behavior
+          this.lambda.θ.mag = Math.min(1.0, this.lambda.θ.mag + helix.z * 0.2);
+          this.lambda.ω.mag = Math.min(1.0, this.lambda.ω.mag + helix.z * 0.15);
+
+          // r (coherence): Structural integrity → affects Squirrel (σ) and Memory (ι)
+          // Higher r = better information preservation and memory coherence
+          this.lambda.σ.mag = Math.min(1.0, this.lambda.σ.mag * (0.8 + helix.r * 0.4));
+          this.lambda.ι.mag = Math.min(1.0, this.lambda.ι.mag * (0.9 + helix.r * 0.2));
+
+          // Combined helix effect on Spark (ξ) - bursts when helix aligned
+          // Creates episodic activation based on helix phase
+          const helixBurstFactor = Math.cos(helix.theta) * helix.z * helix.r;
+          if (helixBurstFactor > 0.5) {
+            this.lambda.ξ.mag = Math.min(1.0, this.lambda.ξ.mag + helixBurstFactor * 0.15);
+          }
+
+          // Paradox (δ) affected by phase coherence across helix dimensions
+          // Measures how "strange" or paradoxical the helix state is
+          const helixParadox = Math.abs(Math.sin(helix.theta * 3)) * (1 - helix.z) * helix.r;
+          this.lambda.δ.mag = Math.min(1.0, this.lambda.δ.mag + helixParadox * 0.1);
+        }
 
         // Normalize Lambda to unit norm
         this.normalize();
