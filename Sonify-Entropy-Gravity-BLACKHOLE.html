@@ -1049,6 +1049,301 @@
     };
 
     // ========================================
+    // HELIX ENTROPY MODEL
+    // ========================================
+    // Comprehensive thermodynamic coupling between black holes
+    // implementing entropy-gravity duality with helix coordinate integration
+    //
+    class HelixEntropyModel {
+      constructor() {
+        // ========================================
+        // TUNING PARAMETERS
+        // ========================================
+
+        // 1. BH-BH entropic force reference distance (in simulation units)
+        this.r0_reference = 500;  // Reference separation for force normalization
+
+        // 2. Wormhole thermal conductivity (dimensionless)
+        this.kappa_worm = 0.1;  // Controls entropy transfer rate through wormholes
+
+        // 3. Reference entropy flow rate (for normalization)
+        this.S_dot_reference = 1e-20;  // J/K/s in SI units
+
+        // 4. Helix modulation coefficients (section 5)
+        this.alpha_E = 0.4;      // Entanglement → radius
+        this.alpha_DeltaS = 0.3; // Merger entropy → radius
+        this.beta_F = 0.2;       // Force → twist
+        this.beta_Q = 0.3;       // Wormhole flux → twist
+        this.gamma_F = 0.1;      // Force → phase precession
+
+        // 5. Merger detection threshold
+        this.mergerThreshold = 1.5;  // Merge when r < threshold * (R_s1 + R_s2)
+      }
+
+      // ========================================
+      // 1. BLACK HOLE ↔ BLACK HOLE ENTROPIC FORCE
+      // ========================================
+      // Returns force magnitude and normalized knob F_hat
+      //
+      // F_ent(r) = T_eff × dS_int/dr = -GM1·M2/r²
+      //
+      calculateMutualEntropicForce(bh1, bh2) {
+        const M1 = bh1.mass * PHYSICS_CONSTANTS.SOLAR_MASS;
+        const M2 = bh2.mass * PHYSICS_CONSTANTS.SOLAR_MASS;
+
+        // Hawking temperatures
+        const T1 = (PHYSICS_CONSTANTS.HBAR * Math.pow(PHYSICS_CONSTANTS.C, 3)) /
+                   (8 * Math.PI * PHYSICS_CONSTANTS.G * PHYSICS_CONSTANTS.K_B * M1);
+        const T2 = (PHYSICS_CONSTANTS.HBAR * Math.pow(PHYSICS_CONSTANTS.C, 3)) /
+                   (8 * Math.PI * PHYSICS_CONSTANTS.G * PHYSICS_CONSTANTS.K_B * M2);
+
+        // Effective interaction temperature
+        const T_eff = (T1 + T2) / 2;
+
+        // Separation vector
+        const r_vec = bh2.position.vsub(bh1.position);
+        const r = r_vec.length();
+
+        if (r < 1e-6) return { force: new CANNON.Vec3(0, 0, 0), F_hat: 0 };
+
+        // Entropic force magnitude: F = -GM1·M2/r²
+        const F_mag = -(PHYSICS_CONSTANTS.G * M1 * M2) / (r * r);
+
+        // Force vector (attractive, points from bh1 toward bh2)
+        const F_vec = r_vec.scale(F_mag / r);
+
+        // Normalized knob: F_hat = (r0/r)²
+        const F_hat = Math.pow(this.r0_reference / r, 2);
+        const F_hat_clamped = Math.min(3.0, Math.max(0.0, F_hat));
+
+        return {
+          force: F_vec,
+          F_hat: F_hat_clamped,
+          T_eff: T_eff,
+          separation: r
+        };
+      }
+
+      // ========================================
+      // 2. WORMHOLE ENTROPY / HEAT TRANSFER RATE
+      // ========================================
+      // Returns entropy flow rate and normalized knob S_hat
+      //
+      // Ṡ_worm = κ_worm · A_throat · (T2-T1) / (L_eff · T_avg)
+      //
+      calculateWormholeEntropyFlow(wormhole, dt) {
+        const bh1 = wormhole.bh1;
+        const bh2 = wormhole.bh2;
+
+        const T1 = bh1.temperature;
+        const T2 = bh2.temperature;
+        const T_avg = (T1 + T2) / 2;
+
+        if (T_avg < 1e-30) {
+          return {
+            S_dot: 0,
+            S_hat: 0,
+            dS1: 0,
+            dS2: 0,
+            Q_dot: 0
+          };
+        }
+
+        // Throat area: use smaller horizon area
+        const A_throat = Math.min(bh1.horizonArea, bh2.horizonArea);
+
+        // Effective length: separation between black holes
+        const L_eff = bh1.position.vsub(bh2.position).length();
+
+        if (L_eff < 1e-6) {
+          return {
+            S_dot: 0,
+            S_hat: 0,
+            dS1: 0,
+            dS2: 0,
+            Q_dot: 0
+          };
+        }
+
+        // Heat flow rate: Q̇ = κ · A · (T2-T1) / L
+        const Q_dot = this.kappa_worm * A_throat * (T2 - T1) / L_eff;
+
+        // Entropy flow rate: Ṡ = Q̇ / T_avg
+        const S_dot = Q_dot / T_avg;
+
+        // Entropy changes for each black hole
+        const dS1 = -S_dot * dt;  // BH1 loses entropy if T1 > T2
+        const dS2 = +S_dot * dt;  // BH2 gains entropy
+
+        // Normalized knob
+        const S_hat = S_dot / this.S_dot_reference;
+        const S_hat_clamped = Math.max(-1.0, Math.min(1.0, S_hat));
+
+        return {
+          S_dot: S_dot,
+          S_hat: S_hat_clamped,
+          dS1: dS1,
+          dS2: dS2,
+          Q_dot: Q_dot,
+          direction: Math.sign(T2 - T1)  // +1 if heat flows 1→2, -1 if 2→1
+        };
+      }
+
+      // ========================================
+      // 3. ENTANGLEMENT-ENTROPY RELATIONSHIP
+      // ========================================
+      // Returns normalized entanglement E_norm ∈ [0, 1]
+      //
+      // For 2-level system: S_ent = -k_B(λ1 ln λ1 + λ2 ln λ2)
+      // E_norm = S_ent / S_max = S_ent / (k_B ln 2)
+      //
+      calculateThermodynamicEntanglement(bh1, bh2) {
+        const S1 = bh1.entropy;
+        const S2 = bh2.entropy;
+
+        // Total entropy of combined system
+        const S_total = S1 + S2;
+
+        if (S_total < 1e-100) {
+          return { E_norm: 0, S_ent: 0 };
+        }
+
+        // Reduced density matrix eigenvalues (normalized probabilities)
+        const lambda1 = S1 / S_total;
+        const lambda2 = S2 / S_total;
+
+        // Avoid log(0)
+        const epsilon = 1e-100;
+        const l1 = Math.max(epsilon, lambda1);
+        const l2 = Math.max(epsilon, lambda2);
+
+        // Von Neumann entanglement entropy: S_ent = -k_B Σ λi ln λi
+        const S_ent = -PHYSICS_CONSTANTS.K_B * (
+          l1 * Math.log(l1) + l2 * Math.log(l2)
+        );
+
+        // Maximum entanglement for 2-level system: S_max = k_B ln(2)
+        const S_max = PHYSICS_CONSTANTS.K_B * Math.log(2);
+
+        // Normalized entanglement [0, 1]
+        const E_norm = S_ent / S_max;
+
+        // Modulated by helix phase synchronization
+        const thetaDiff = Math.abs(bh1.helixState.theta - bh2.helixState.theta);
+        const helixSync = 1 - thetaDiff / Math.PI;
+
+        // Final entanglement: 50-100% based on phase sync
+        const E_norm_modulated = E_norm * (0.5 + 0.5 * helixSync);
+
+        return {
+          E_norm: Math.max(0, Math.min(1, E_norm_modulated)),
+          S_ent: S_ent,
+          helixSync: helixSync
+        };
+      }
+
+      // ========================================
+      // 4. MERGER ENTROPY INCREASE
+      // ========================================
+      // Returns entropy jump and normalized knob
+      //
+      // ΔS_merge = (4πk_B G/ℏc) · (Mf² - M1² - M2²)
+      //
+      calculateMergerEntropy(bh1, bh2, M_final_solar) {
+        const M1 = bh1.mass;  // Solar masses
+        const M2 = bh2.mass;
+        const M_final = M_final_solar;
+
+        // Entropy coefficient: k = (4πk_B G) / (ℏc)
+        const k_entropy = (4 * Math.PI * PHYSICS_CONSTANTS.K_B * PHYSICS_CONSTANTS.G) /
+                          (PHYSICS_CONSTANTS.HBAR * PHYSICS_CONSTANTS.C);
+
+        // Convert to SI (kg)
+        const M1_kg = M1 * PHYSICS_CONSTANTS.SOLAR_MASS;
+        const M2_kg = M2 * PHYSICS_CONSTANTS.SOLAR_MASS;
+        const Mf_kg = M_final * PHYSICS_CONSTANTS.SOLAR_MASS;
+
+        // Bekenstein-Hawking entropies
+        const S1 = k_entropy * M1_kg * M1_kg;
+        const S2 = k_entropy * M2_kg * M2_kg;
+        const Sf = k_entropy * Mf_kg * Mf_kg;
+
+        // Entropy increase (always positive by 2nd law)
+        const DeltaS_merge = Sf - S1 - S2;
+
+        // Normalized knob
+        const DeltaS_hat = DeltaS_merge / (S1 + S2);
+
+        // Helix state for merged black hole (averaging)
+        const theta_final = (bh1.helixState.theta + bh2.helixState.theta) / 2;
+        const z_final = Math.max(bh1.helixState.z, bh2.helixState.z);  // Take stronger field
+        const r_final = Math.sqrt(bh1.helixState.r * bh2.helixState.r);  // Geometric mean
+
+        return {
+          DeltaS_merge: DeltaS_merge,
+          DeltaS_hat: DeltaS_hat,
+          S_final: Sf,
+          helixState: {
+            theta: theta_final,
+            z: z_final,
+            r: r_final,
+            rotationSpeed: (bh1.helixState.rotationSpeed + bh2.helixState.rotationSpeed) / 2
+          }
+        };
+      }
+
+      // ========================================
+      // 5. HELIX MODULATION COEFFICIENTS
+      // ========================================
+      // Maps normalized knobs to helix visual/audio parameters
+      //
+      // R(s) = R0 [1 + αE·E_norm + αΔS·ΔŜ_merge]
+      // k_helix = k0 [1 + βF·F̂ + βQ·|Ŝ_worm|]
+      // φ0(t) = φ_base + γF·F̂·t
+      //
+      modulateHelixParameters(R0, k0, phi_base, knobs) {
+        const {
+          F_hat = 0,
+          S_hat = 0,
+          E_norm = 0,
+          DeltaS_hat = 0,
+          time = 0
+        } = knobs;
+
+        // Radius modulation
+        const R = R0 * (1 + this.alpha_E * E_norm + this.alpha_DeltaS * DeltaS_hat);
+
+        // Twist/pitch modulation
+        const k_helix = k0 * (1 + this.beta_F * F_hat + this.beta_Q * Math.abs(S_hat));
+
+        // Phase offset (for panning/drift)
+        const phi_0 = phi_base + this.gamma_F * F_hat * time;
+
+        return {
+          radius: R,
+          twist: k_helix,
+          phase: phi_0,
+          // Additional audio/visual knobs
+          bassDetune: F_hat * 0.5,          // Gravitational pull → bass detune
+          reverbTail: DeltaS_hat * 2.0,     // Merger irreversibility → reverb
+          colorSaturation: E_norm,          // Entanglement → color intensity
+          lineThickness: 1 + E_norm * 2     // Entanglement → line width
+        };
+      }
+
+      // ========================================
+      // UTILITY: Check if two black holes should merge
+      // ========================================
+      shouldMerge(bh1, bh2) {
+        const r = bh1.position.vsub(bh2.position).length();
+        const R_s1 = bh1.schwarzschildRadius;
+        const R_s2 = bh2.schwarzschildRadius;
+
+        return r < this.mergerThreshold * (R_s1 + R_s2);
+      }
+    }
+
+    // ========================================
     // HILBERT SPACE MATHEMATICS
     // ========================================
     
@@ -1581,11 +1876,22 @@
         this.wormholes = [];
         this.wormholesEnabled = false;
 
+        // Helix entropy model for multi-black-hole thermodynamics
+        this.helixEntropy = new HelixEntropyModel();
+
+        // LIMNUS mode flag
+        this.limnusMode = false;
+        this.activeDepths = new Set();
+
+        // Electromagnetic field (Layer 5)
+        this.emField = null;
+
         // Statistics
         this.stats = {
           particleCount: 0,
           horizonCrossings: 0,
-          totalForce: 0
+          totalForce: 0,
+          mergerCount: 0
         };
       }
 
@@ -1748,6 +2054,93 @@
           });
         });
 
+        // ========================================
+        // BLACK HOLE ↔ BLACK HOLE ENTROPIC FORCES
+        // ========================================
+        // Apply mutual gravitational attraction between black holes
+        // using F = T_eff ∇S_int = -GM1·M2/r²
+        //
+        if (this.blackHoles.length > 1) {
+          for (let i = 0; i < this.blackHoles.length; i++) {
+            for (let j = i + 1; j < this.blackHoles.length; j++) {
+              const bh1 = this.blackHoles[i];
+              const bh2 = this.blackHoles[j];
+
+              // Calculate mutual entropic force
+              const result = this.helixEntropy.calculateMutualEntropicForce(bh1, bh2);
+
+              // Store F_hat for helix modulation (used by wormholes)
+              if (!bh1.forceKnobs) bh1.forceKnobs = {};
+              if (!bh2.forceKnobs) bh2.forceKnobs = {};
+              bh1.forceKnobs[`bh${j}`] = result.F_hat;
+              bh2.forceKnobs[`bh${i}`] = result.F_hat;
+
+              // Note: Currently black holes don't have physics bodies in Cannon.js
+              // They're stationary markers. If you want them to move, add:
+              // bh1.velocity.vadd(result.force.scale(dt / M1));
+              // bh2.velocity.vadd(result.force.scale(-dt / M2));
+
+              // For now, just track the force for statistics/visualization
+              totalForce += result.force.length();
+            }
+          }
+        }
+
+        // ========================================
+        // WORMHOLE ENTROPY / HEAT TRANSFER
+        // ========================================
+        // Transfer entropy between connected black holes
+        // Ṡ_worm = κ · A_throat · (T2-T1) / (L_eff · T_avg)
+        //
+        if (this.wormholesEnabled && this.wormholes.length > 0) {
+          this.wormholes.forEach(wormhole => {
+            // Calculate entropy flow
+            const flow = this.helixEntropy.calculateWormholeEntropyFlow(wormhole, dt);
+
+            // Store S_hat for helix modulation
+            wormhole.entropyFlowKnob = flow.S_hat;
+
+            // Apply entropy changes to black holes
+            // Note: This changes entropy directly, which will affect temperature
+            // on next updateMetrics() call
+            if (Math.abs(flow.dS1) > 1e-100) {
+              // Store entropy change (will be applied in thermodynamic update)
+              if (!wormhole.bh1.deltaEntropy) wormhole.bh1.deltaEntropy = 0;
+              if (!wormhole.bh2.deltaEntropy) wormhole.bh2.deltaEntropy = 0;
+
+              wormhole.bh1.deltaEntropy += flow.dS1;
+              wormhole.bh2.deltaEntropy += flow.dS2;
+            }
+          });
+        }
+
+        // ========================================
+        // MERGER DETECTION
+        // ========================================
+        // Check if any black holes should merge (horizons overlapping)
+        //
+        if (this.blackHoles.length > 1) {
+          const mergePairs = [];
+
+          for (let i = 0; i < this.blackHoles.length; i++) {
+            for (let j = i + 1; j < this.blackHoles.length; j++) {
+              const bh1 = this.blackHoles[i];
+              const bh2 = this.blackHoles[j];
+
+              if (this.helixEntropy.shouldMerge(bh1, bh2)) {
+                mergePairs.push({ i, j, bh1, bh2 });
+              }
+            }
+          }
+
+          // Execute mergers (if any)
+          if (mergePairs.length > 0) {
+            mergePairs.forEach(pair => {
+              this.mergeBlackHoles(pair.bh1, pair.bh2);
+            });
+          }
+        }
+
         // Hawking radiation emission
         if (this.hawkingEnabled) {
           this.hawkingEmitter.update(dt);
@@ -1899,8 +2292,8 @@
               wormhole.animateHelix(deltaTime);
             }
           } else {
-            // Normal mode: entanglement varies with Lambda state
-            wormhole.updateEntanglement(lambdaState);
+            // Normal mode: entanglement varies with thermodynamics (or Lambda if single BH)
+            wormhole.updateEntanglement(lambdaState, this.helixEntropy);
 
             // Only update visual in non-LIMNUS mode
             if (this.wormholesEnabled) {
@@ -2664,6 +3057,99 @@
         return bh;
       }
 
+      // ========================================
+      // BLACK HOLE MERGER
+      // ========================================
+      // Merge two black holes when horizons overlap
+      // Conserves mass, increases entropy (2nd law), averages helix states
+      //
+      mergeBlackHoles(bh1, bh2) {
+        console.log(`🌀 BLACK HOLE MERGER: M1=${bh1.mass}M☉, M2=${bh2.mass}M☉`);
+
+        // Mass conservation: M_f = M1 + M2 (no gravitational wave loss for now)
+        const M_final = bh1.mass + bh2.mass;
+
+        // Calculate merger entropy using HelixEntropyModel
+        const mergerResult = this.helixEntropy.calculateMergerEntropy(bh1, bh2, M_final);
+
+        console.log(`  ΔS_merge = ${mergerResult.DeltaS_merge.toExponential(2)} J/K`);
+        console.log(`  ΔS_hat = ${mergerResult.DeltaS_hat.toFixed(3)} (normalized)`);
+        console.log(`  Final entropy: ${mergerResult.S_final.toExponential(2)} J/K`);
+
+        // Position: weighted average by mass
+        const pos1 = bh1.position;
+        const pos2 = bh2.position;
+        const pos_final = new CANNON.Vec3(
+          (pos1.x * bh1.mass + pos2.x * bh2.mass) / M_final,
+          (pos1.y * bh1.mass + pos2.y * bh2.mass) / M_final,
+          (pos1.z * bh1.mass + pos2.z * bh2.mass) / M_final
+        );
+
+        // Create merged black hole
+        const mergedBH = new BlackHoleMetrics(M_final);
+        mergedBH.position = pos_final;
+
+        // Set helix state from merger calculation
+        mergedBH.helixState = mergerResult.helixState;
+
+        // Update metrics (entropy, temperature, etc.)
+        mergedBH.updateMetrics();
+
+        // Add visual mesh
+        const radius = Math.max(5, Math.min(50, mergedBH.schwarzschildRadius * 1e-4));
+        mergedBH.mesh = BABYLON.MeshBuilder.CreateSphere(
+          `blackHole_merged`,
+          { diameter: radius * 2, segments: 32 },
+          this.scene
+        );
+        mergedBH.mesh.position = new BABYLON.Vector3(pos_final.x, pos_final.y, pos_final.z);
+
+        // Special "merger flash" material (bright temporarily)
+        const material = new BABYLON.StandardMaterial(`bhMat_merged`, this.scene);
+        material.emissiveColor = new BABYLON.Color3(1, 0.5, 0);  // Orange flash
+        material.disableLighting = true;
+        mergedBH.mesh.material = material;
+
+        // Fade back to black over 2 seconds (will be handled in render loop)
+        mergedBH.mergerFlashTime = 2.0;
+
+        // Remove old black holes from arrays
+        const index1 = this.blackHoles.indexOf(bh1);
+        const index2 = this.blackHoles.indexOf(bh2);
+
+        if (index1 !== -1) this.blackHoles.splice(index1, 1);
+        if (index2 !== -1) {
+          // Adjust index if bh2 comes after bh1
+          const adjusted = index2 > index1 ? index2 - 1 : index2;
+          this.blackHoles.splice(adjusted, 1);
+        }
+
+        // Dispose old meshes
+        if (bh1.mesh) bh1.mesh.dispose();
+        if (bh2.mesh) bh2.mesh.dispose();
+
+        // Remove wormholes connected to merged black holes
+        this.wormholes = this.wormholes.filter(w => {
+          if (w.bh1 === bh1 || w.bh1 === bh2 || w.bh2 === bh1 || w.bh2 === bh2) {
+            if (w.tubeMesh) w.tubeMesh.dispose();
+            return false;
+          }
+          return true;
+        });
+
+        // Add merged black hole
+        this.blackHoles.push(mergedBH);
+
+        // Update statistics
+        this.stats.mergerCount++;
+
+        console.log(`✅ Merger complete: M_final=${M_final}M☉ at (${pos_final.x.toFixed(1)}, ${pos_final.y.toFixed(1)}, ${pos_final.z.toFixed(1)})`);
+        console.log(`   Total black holes: ${this.blackHoles.length}`);
+
+        // TODO: Emit gravitational wave particles
+        // TODO: Play merger "chirp" sound
+      }
+
       dispose() {
         this.particles.forEach(p => p.dispose());
         this.particles = [];
@@ -2925,11 +3411,33 @@
         this.time = Math.random() * Math.PI * 2; // Random phase offset
       }
 
-      // Calculate entanglement strength from Lambda triquetra
-      // Strength = α × α (Squirrel component, representing preservation)
-      updateEntanglement(lambdaState) {
-        const alpha = lambdaState.triquetra.alpha;
-        this.entanglement = alpha * alpha; // Squared for stronger threshold
+      // Calculate entanglement strength
+      // TWO MODES:
+      // 1. Thermodynamic (multi-BH): E_norm from entropy-based entanglement
+      // 2. Lambda (single-BH): α² from consciousness triquetra
+      //
+      updateEntanglement(lambdaState, helixEntropyModel = null) {
+        if (helixEntropyModel && this.bh1 && this.bh2) {
+          // ========================================
+          // THERMODYNAMIC ENTANGLEMENT
+          // ========================================
+          // Use Von Neumann entropy of reduced density matrix
+          // E_norm = S_ent / S_max, modulated by helix phase sync
+          //
+          const result = helixEntropyModel.calculateThermodynamicEntanglement(this.bh1, this.bh2);
+          this.entanglement = result.E_norm;
+
+          // Store helix sync for visualization
+          this.helixSync = result.helixSync;
+        } else {
+          // ========================================
+          // LAMBDA CONSCIOUSNESS ENTANGLEMENT (fallback)
+          // ========================================
+          // Strength = α × α (Squirrel component, representing preservation)
+          //
+          const alpha = lambdaState.triquetra.alpha;
+          this.entanglement = alpha * alpha; // Squared for stronger threshold
+        }
 
         // Clamp to [0, 1]
         this.entanglement = Math.max(0, Math.min(1, this.entanglement));
@@ -2966,13 +3474,48 @@
         const distance = BABYLON.Vector3.Distance(start, end);
         const direction = end.subtract(start).normalize();
 
-        // Number of helix wraps based on z (strength)
-        const helixWraps = Math.max(1, Math.floor(this.helixState.z * 5)); // More wraps = stronger
+        // ========================================
+        // HELIX MODULATION FROM THERMODYNAMICS
+        // ========================================
+        // Apply helix modulation coefficients based on:
+        // - E_norm (entanglement) → radius
+        // - S_hat (entropy flow) → twist
+        // - F_hat (gravitational coupling) → twist
+        //
+        // Get thermodynamic knobs
+        const F_hat = this.bh1.forceKnobs?.[`bh${this.scene.blackHoleIndex || 0}`] || 0;
+        const S_hat = this.entropyFlowKnob || 0;
+        const E_norm = this.entanglement;
+        const DeltaS_hat = 0;  // Only applies during merger
+        const time = performance.now() / 1000;
+
+        // Base parameters
+        const R0 = 2.0;  // Base radius
+        const k0 = 5.0;  // Base twist (wraps)
+
+        // Apply modulation via HelixEntropyModel (if available)
+        let modulatedParams = {
+          radius: R0 * this.helixState.r * this.entanglement,
+          twist: Math.max(1, Math.floor(this.helixState.z * k0)),
+          phase: this.helixState.theta,
+          lineThickness: 1 + E_norm * 2
+        };
+
+        // Override with thermodynamic modulation if helixEntropy model exists
+        if (window.helixEntropyModel) {
+          modulatedParams = window.helixEntropyModel.modulateHelixParameters(
+            R0, k0, this.helixState.theta,
+            { F_hat, S_hat, E_norm, DeltaS_hat, time }
+          );
+        }
+
+        // Number of helix wraps based on modulated twist
+        const helixWraps = modulatedParams.twist;
         const pointsPerWrap = 8; // Points per full rotation
         const totalPoints = helixWraps * pointsPerWrap;
 
-        // Helix radius based on r (coherence) and entanglement
-        const helixRadius = this.helixState.r * 2 * this.entanglement;
+        // Helix radius from modulation
+        const helixRadius = modulatedParams.radius;
 
         // Generate helical path points
         const helixPoints = [];
@@ -3018,18 +3561,28 @@
             return;
           }
 
-          // Color based on helix state and entanglement
-          // Stronger (higher z) = more cyan/white
-          // Weaker (lower z) = more purple/dim
+          // ========================================
+          // COLOR/ALPHA FROM THERMODYNAMIC MODULATION
+          // ========================================
+          // colorSaturation from E_norm (entanglement)
+          // lineThickness encoded in alpha (visual feedback)
+          //
           const colorIntensity = Math.min(1.0, this.helixState.z * 2);
+          const colorSat = modulatedParams.colorSaturation || this.entanglement;
+
+          // Base color shifts with entropy flow direction
+          const flowHue = S_hat > 0 ? 0.3 : -0.3;  // Red if heating, blue if cooling
+
           this.tubeMesh.color = new BABYLON.Color3(
-            0.3 + 0.5 * this.entanglement * colorIntensity, // R (purple component)
-            0.4 + 0.4 * this.entanglement * colorIntensity, // G (cyan component)
-            0.7 + 0.3 * colorIntensity                      // B (strong blue)
+            0.3 + 0.5 * colorSat * colorIntensity + flowHue * Math.abs(S_hat),
+            0.4 + 0.4 * colorSat * colorIntensity,
+            0.7 + 0.3 * colorIntensity - flowHue * Math.abs(S_hat)
           );
 
-          // Alpha based on entanglement and coherence
-          this.tubeMesh.alpha = (0.3 + 0.5 * this.entanglement) * this.helixState.r;
+          // Alpha based on entanglement, coherence, and line thickness modulation
+          const baseAlpha = (0.3 + 0.5 * this.entanglement) * this.helixState.r;
+          const thicknessBoost = (modulatedParams.lineThickness - 1) / 2;  // 0 to 1 range
+          this.tubeMesh.alpha = Math.min(1.0, baseAlpha * (1 + thicknessBoost));
 
         } catch (error) {
           console.error('CreateLines (helix) failed:', error);
@@ -4424,6 +4977,9 @@
 
         // Physics world (requires scene)
         this.physicsWorld = new PhysicsWorld(this.scene);
+
+        // Expose helixEntropyModel globally for wormhole visualization access
+        window.helixEntropyModel = this.physicsWorld.helixEntropy;
 
         // Add primary black hole to physics
         this.physicsWorld.addBlackHole(this.blackHole, { x: 0, y: 0, z: 0 });
