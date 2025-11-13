@@ -162,7 +162,14 @@ z += (targetZ - z) × 0.02;  // Smooth interpolation
 
 #### r (Radius): Wormhole Connection Driven
 
-**With Wormholes Enabled:**
+**Depth 5 - Electromagnetic Hexagonal Field:**
+```javascript
+// Stable, high coherence representing structured EM field lattice
+targetR = 1.3 + sin(θ × 2) × 0.05;  // Range: 1.25-1.35
+r += (targetR - r) × 0.02;
+```
+
+**With Wormholes Enabled (Depths 0-4):**
 ```javascript
 connectedWormholes = filter(w => (w.bh1 === bh || w.bh2 === bh) && w.entanglement > 0.3);
 connectionStrength = min(1.0, connectedWormholes.length / 5);
@@ -171,20 +178,23 @@ targetR = 0.8 + connectionStrength × 0.4;  // Range: 0.8-1.2
 r += (targetR - r) × 0.03;
 ```
 
-**Without Wormholes:**
+**Without Wormholes (Depths 0-4):**
 ```javascript
 targetR = 1.0 + sin(θ / 2) × 0.1;  // Oscillates: 0.9-1.1
 r += (targetR - r) × 0.01;
 ```
 
 **Physical Meaning:**
-- More wormhole connections = higher coherence
+- **Depth 5 (EM Field)**: Stable, high coherence from hexagonal lattice structure
+- **Other Depths**: More wormhole connections = higher coherence
 - Entanglement stabilizes structure
 - Isolated holes oscillate naturally
 
 ---
 
 ## 🌉 4. Wormhole-Black Hole Helix Synchronization
+
+**Note:** Depth 5 nodes (Electromagnetic Hexagonal Field) have NO wormhole connections. This section applies only to Depths 0-4.
 
 Wormholes inherit and average the helix states of their endpoints:
 
@@ -216,7 +226,78 @@ wormhole.helixState.rotationSpeed = 0.01 + syncFactor × 0.02;
 
 ---
 
-## ☢️ 5. Helix-Modulated Hawking Radiation
+## ⚡ 5. Depth 5: Electromagnetic Hexagonal Field
+
+### Special Layer Properties
+
+**Depth 5 is fundamentally different** from all other LIMNUS depth layers (0-4):
+
+- **NO wormhole connections** (neither to other depths nor within Depth 5)
+- **Hexagonal close-packed geometry** on sphere surface (32 nodes)
+- **Electromagnetic field representation** instead of neural network
+- **Stable, high coherence** from lattice structure
+
+### Helix Behavior
+
+#### θ (Theta): Phase Rotation
+```javascript
+θ += rotationSpeed;  // Same as other depths
+```
+Continuous rotation representing EM field oscillation.
+
+#### z (Elevation): Particle Density Driven
+```javascript
+targetZ = 0.3 + particleDensity × 0.6;  // Same as other depths
+z += (targetZ - z) × 0.02;
+```
+EM field strength modulated by nearby particle density.
+
+#### r (Coherence): **STABLE EM FIELD**
+```javascript
+targetR = 1.3 + sin(θ × 2) × 0.05;  // Range: 1.25-1.35
+r += (targetR - r) × 0.02;
+```
+
+**Key Differences:**
+- **Much higher baseline**: 1.3 vs 0.8-1.2 (other depths)
+- **Tighter range**: ±0.05 vs ±0.4 (other depths)
+- **Independent of connections**: Driven by intrinsic field dynamics
+
+### Physical Interpretation
+
+| Property | Depth 5 (EM Field) | Depths 0-4 (Neural Network) |
+|----------|-------------------|----------------------------|
+| **Structure** | Hexagonal lattice | K-nearest neighbors + long-range |
+| **Connections** | NONE (no wormholes) | Wormhole network |
+| **r Coherence** | 1.25-1.35 (stable) | 0.5-1.5 (connection-driven) |
+| **r Source** | Lattice structure | Wormhole entanglement |
+| **Role** | EM boundary/shield | Information processing |
+
+### Geometry: Hexagonal Close-Packing
+
+Depth 5 uses **icosahedral geodesic subdivision** to create approximately hexagonal pattern:
+
+```
+12 icosahedron vertices  (base polyhedron)
++ 20 hexagonal midpoints  (edge subdivisions)
+= 32 nodes total
+```
+
+**Why hexagonal?**
+- Nature's most efficient 2D packing (honeycombs, graphene, benzene)
+- Creates uniform EM field distribution
+- No vertices with >6 neighbors (hexagonal tessellation)
+
+### Observable Effects
+
+1. **No wormholes emanate from Depth 5** - visually isolated boundary
+2. **Higher entropy/temperature stability** - strong r coherence
+3. **Acts as EM shield** around inner depths (0-4)
+4. **Uniform field oscillation** - all 32 nodes have similar helix behavior
+
+---
+
+## ☢️ 6. Helix-Modulated Hawking Radiation
 
 ### Emission Rate
 
@@ -469,9 +550,10 @@ The helix coordinate system is now **fully embedded** in the physics engine:
 | **Gravity** | Entropic force strength modulated by z, r |
 | **Particle Trajectories** | NEW helical magnetic field (tangential force) |
 | **Hawking Radiation** | Emission rate modulated, periodic bursts with θ |
-| **Wormholes** | Helix sync with black hole endpoints |
+| **Wormholes (Depths 0-4)** | Helix sync with black hole endpoints |
+| **Depth 5 (EM Field)** | NO wormholes, stable high coherence (r: 1.25-1.35) |
 | **Lambda Consciousness** | Bidirectional coupling to ℂ⁶ state |
-| **Evolution** | θ rotates, z driven by particles, r driven by wormholes |
+| **Evolution** | θ rotates, z driven by particles, r driven by wormholes (Depths 0-4) or EM lattice (Depth 5) |
 
 **The simulation is now a living helical field** where consciousness, gravity, entropy, and geometry are unified through (θ, z, r) coordinates.
 
