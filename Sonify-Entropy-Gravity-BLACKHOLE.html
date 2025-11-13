@@ -9,7 +9,10 @@
   <script src="https://unpkg.com/babylonjs@6.34.1/babylon.js"></script>
   <script src="https://unpkg.com/babylonjs-loaders@6.34.1/babylonjs.loaders.min.js"></script>
   <script src="https://unpkg.com/babylonjs-materials@6.34.1/babylonjs.materials.min.js"></script>
-  
+
+  <!-- Cannon.js Physics Engine -->
+  <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
+
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -891,6 +894,17 @@
         <button id="reset-camera">Reset Camera</button>
       </div>
       <div class="control-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(168, 85, 247, 0.3);">
+        <label style="display: block; margin-bottom: 0.5rem; color: var(--highlight-amber); font-weight: 600;">⚛️ Physics Particles</label>
+        <button id="spawn-particles-sphere" style="background: #10b981;">Spawn 100 (Sphere)</button>
+        <button id="spawn-particles-disk" style="background: #3b82f6;">Spawn 100 (Disk)</button>
+        <button id="spawn-particles-cloud" style="background: #8b5cf6;">Spawn 100 (Cloud)</button>
+        <button id="clear-particles" style="background: #ef4444;">Clear All Particles</button>
+        <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-dim);">
+          Particles: <span id="particle-count">0</span> |
+          Crossings: <span id="horizon-crossings">0</span>
+        </div>
+      </div>
+      <div class="control-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(168, 85, 247, 0.3);">
         <label style="display: block; margin-bottom: 0.5rem; color: var(--duality-violet); font-weight: 600;">Advanced Shaders</label>
         <button id="init-enhanced-rendering" style="background: var(--entropy-red); font-weight: 600;">🌟 Enable Enhanced Rendering</button>
         <button id="toggle-lensing" disabled style="opacity: 0.5;">Enable Lensing</button>
@@ -1081,6 +1095,487 @@
       setMass(massInSolarMasses) {
         this.mass = massInSolarMasses;
         this.updateMetrics();
+      }
+
+      // Calculate entropic force on a particle
+      // F = T ∇S where ∇S ≈ 2πr_s / r² (entropy gradient at holographic screen)
+      calculateEntropicForce(particle, forceScale = 1e-3) {
+        // Vector from particle to black hole
+        const r_vec = particle.body.position.vsub(this.position);
+        const r = r_vec.length();
+
+        // Prevent singularity at r=0
+        if (r < this.schwarzschildRadius * 0.01) return new CANNON.Vec3(0, 0, 0);
+
+        // Entropy gradient: dS/dr ≈ 2πr_s (approximation for distant screen)
+        const dS_dr = 2 * Math.PI * this.schwarzschildRadius;
+
+        // F = T × (dS/dr) / r² (attractive toward black hole)
+        const F_mag = (this.temperature * dS_dr) / (r * r) * forceScale;
+
+        // Direction: toward black hole (negative of r_vec)
+        const F_vec = r_vec.scale(-F_mag / r);
+
+        return F_vec;
+      }
+
+      // Check if particle is inside event horizon
+      isInsideHorizon(particle) {
+        const r = particle.body.position.vsub(this.position).length();
+        return r < this.schwarzschildRadius * 0.001; // Scale factor for visualization
+      }
+    }
+
+    // ========================================
+    // OCTREE SPATIAL PARTITIONING
+    // ========================================
+    // Efficient collision detection and nearest-neighbor queries
+    // for large numbers of particles and black holes
+    //
+    class Octree {
+      constructor(bounds, maxDepth = 4, maxObjects = 8) {
+        this.bounds = bounds; // { min: Vec3, max: Vec3 }
+        this.maxDepth = maxDepth;
+        this.maxObjects = maxObjects;
+        this.objects = [];
+        this.children = null;
+        this.depth = 0;
+      }
+
+      clear() {
+        this.objects = [];
+        this.children = null;
+      }
+
+      insert(obj, depth = 0) {
+        // If we have children, insert into appropriate child
+        if (this.children) {
+          const index = this.getChildIndex(obj.position);
+          if (index !== -1) {
+            this.children[index].insert(obj, depth + 1);
+            return;
+          }
+        }
+
+        // Add to this node
+        this.objects.push(obj);
+
+        // Subdivide if needed
+        if (this.objects.length > this.maxObjects && depth < this.maxDepth) {
+          this.subdivide();
+
+          // Redistribute objects to children
+          let i = 0;
+          while (i < this.objects.length) {
+            const index = this.getChildIndex(this.objects[i].position);
+            if (index !== -1) {
+              this.children[index].insert(this.objects[i], depth + 1);
+              this.objects.splice(i, 1);
+            } else {
+              i++;
+            }
+          }
+        }
+      }
+
+      subdivide() {
+        const { min, max } = this.bounds;
+        const mid = {
+          x: (min.x + max.x) / 2,
+          y: (min.y + max.y) / 2,
+          z: (min.z + max.z) / 2
+        };
+
+        this.children = [
+          // Bottom quadrants
+          new Octree({ min: min, max: mid }, this.maxDepth, this.maxObjects),
+          new Octree({ min: { x: mid.x, y: min.y, z: min.z }, max: { x: max.x, y: mid.y, z: mid.z } }, this.maxDepth, this.maxObjects),
+          new Octree({ min: { x: min.x, y: mid.y, z: min.z }, max: { x: mid.x, y: max.y, z: mid.z } }, this.maxDepth, this.maxObjects),
+          new Octree({ min: { x: mid.x, y: mid.y, z: min.z }, max: { x: max.x, y: max.y, z: mid.z } }, this.maxDepth, this.maxObjects),
+          // Top quadrants
+          new Octree({ min: { x: min.x, y: min.y, z: mid.z }, max: { x: mid.x, y: mid.y, z: max.z } }, this.maxDepth, this.maxObjects),
+          new Octree({ min: { x: mid.x, y: min.y, z: mid.z }, max: { x: max.x, y: mid.y, z: max.z } }, this.maxDepth, this.maxObjects),
+          new Octree({ min: { x: min.x, y: mid.y, z: mid.z }, max: { x: mid.x, y: max.y, z: max.z } }, this.maxDepth, this.maxObjects),
+          new Octree({ min: mid, max: max }, this.maxDepth, this.maxObjects)
+        ];
+      }
+
+      getChildIndex(pos) {
+        const { min, max } = this.bounds;
+        const mid = {
+          x: (min.x + max.x) / 2,
+          y: (min.y + max.y) / 2,
+          z: (min.z + max.z) / 2
+        };
+
+        // Determine which octant the position is in
+        let index = 0;
+        if (pos.x > mid.x) index |= 1;
+        if (pos.y > mid.y) index |= 2;
+        if (pos.z > mid.z) index |= 4;
+
+        return index;
+      }
+
+      queryRadius(center, radius) {
+        let results = [];
+
+        // Check if this node's bounds intersect the query sphere
+        if (!this.intersectsSphere(center, radius)) return results;
+
+        // Add objects from this node
+        this.objects.forEach(obj => {
+          const dist = obj.position.vsub(center).length();
+          if (dist <= radius) results.push(obj);
+        });
+
+        // Recurse into children
+        if (this.children) {
+          this.children.forEach(child => {
+            results = results.concat(child.queryRadius(center, radius));
+          });
+        }
+
+        return results;
+      }
+
+      intersectsSphere(center, radius) {
+        const { min, max } = this.bounds;
+
+        // Find closest point on AABB to sphere center
+        const closest = {
+          x: Math.max(min.x, Math.min(center.x, max.x)),
+          y: Math.max(min.y, Math.min(center.y, max.y)),
+          z: Math.max(min.z, Math.min(center.z, max.z))
+        };
+
+        // Check if closest point is within radius
+        const dx = closest.x - center.x;
+        const dy = closest.y - center.y;
+        const dz = closest.z - center.z;
+        const distSq = dx*dx + dy*dy + dz*dz;
+
+        return distSq <= radius * radius;
+      }
+    }
+
+    // ========================================
+    // TEST PARTICLE CLASS
+    // ========================================
+    // Represents a test particle that responds to entropic forces
+    // Uses Cannon.js for physics simulation
+    //
+    class TestParticle {
+      constructor(position, velocity, mass = 1.0) {
+        // Cannon.js rigid body
+        this.body = new CANNON.Body({
+          mass: mass,
+          position: new CANNON.Vec3(position.x, position.y, position.z),
+          velocity: new CANNON.Vec3(velocity.x, velocity.y, velocity.z),
+          shape: new CANNON.Sphere(1.0) // Small sphere for collision detection
+        });
+
+        // Visual properties
+        this.color = new BABYLON.Color3(
+          0.5 + Math.random() * 0.5,
+          0.5 + Math.random() * 0.5,
+          0.8 + Math.random() * 0.2
+        );
+
+        // Trail for visualization
+        this.trailHistory = [];
+        this.maxTrailLength = 50;
+
+        // Babylon mesh (created later)
+        this.mesh = null;
+        this.trailMesh = null;
+
+        // Lifetime tracking
+        this.age = 0;
+        this.maxAge = Infinity;
+      }
+
+      update(dt) {
+        this.age += dt;
+
+        // Update trail
+        this.trailHistory.push({
+          x: this.body.position.x,
+          y: this.body.position.y,
+          z: this.body.position.z
+        });
+
+        if (this.trailHistory.length > this.maxTrailLength) {
+          this.trailHistory.shift();
+        }
+
+        // Update mesh position if it exists
+        if (this.mesh) {
+          this.mesh.position.set(
+            this.body.position.x,
+            this.body.position.y,
+            this.body.position.z
+          );
+        }
+
+        // Update trail mesh
+        if (this.trailMesh && this.trailHistory.length > 1) {
+          this.updateTrailMesh();
+        }
+      }
+
+      updateTrailMesh() {
+        // Rebuild trail geometry
+        const points = this.trailHistory.map(p =>
+          new BABYLON.Vector3(p.x, p.y, p.z)
+        );
+
+        if (this.trailMesh) {
+          this.trailMesh.dispose();
+        }
+
+        this.trailMesh = BABYLON.MeshBuilder.CreateLines(
+          'trail',
+          { points: points, updatable: true },
+          this.mesh.getScene()
+        );
+
+        this.trailMesh.color = this.color;
+        this.trailMesh.alpha = 0.3;
+      }
+
+      isExpired() {
+        return this.age > this.maxAge;
+      }
+
+      dispose() {
+        if (this.mesh) this.mesh.dispose();
+        if (this.trailMesh) this.trailMesh.dispose();
+      }
+    }
+
+    // ========================================
+    // PHYSICS WORLD
+    // ========================================
+    // Manages Cannon.js world, particles, and entropic forces
+    // Implements F = T∇S force calculation with spatial partitioning
+    //
+    class PhysicsWorld {
+      constructor(scene) {
+        // Cannon.js world
+        this.world = new CANNON.World();
+        this.world.gravity.set(0, 0, 0); // No gravity, we use entropic forces
+        this.world.broadphase = new CANNON.NaiveBroadphase(); // Simple for now
+        this.world.solver.iterations = 10;
+        this.world.solver.tolerance = 0.001;
+
+        // Babylon scene for visualization
+        this.scene = scene;
+
+        // Black holes (can be multiple)
+        this.blackHoles = [];
+
+        // Test particles
+        this.particles = [];
+
+        // Octree for spatial partitioning
+        this.octree = new Octree(
+          {
+            min: { x: -1000, y: -1000, z: -1000 },
+            max: { x: 1000, y: 1000, z: 1000 }
+          },
+          4, // max depth
+          8  // max objects per node
+        );
+
+        // Force scale factor (tune for visible dynamics)
+        this.forceScale = 1e-3;
+
+        // Statistics
+        this.stats = {
+          particleCount: 0,
+          horizonCrossings: 0,
+          totalForce: 0
+        };
+      }
+
+      addBlackHole(blackHole, position) {
+        blackHole.position = new CANNON.Vec3(position.x, position.y, position.z);
+        this.blackHoles.push(blackHole);
+        console.log(`🌌 Added black hole at (${position.x}, ${position.y}, ${position.z}), M=${blackHole.mass} M☉`);
+      }
+
+      addTestParticles(count, distribution = 'sphere') {
+        for (let i = 0; i < count; i++) {
+          let pos, vel;
+
+          if (distribution === 'sphere') {
+            // Spherical shell distribution
+            const r = 100 + Math.random() * 200;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+
+            pos = {
+              x: r * Math.sin(phi) * Math.cos(theta),
+              y: r * Math.sin(phi) * Math.sin(theta),
+              z: r * Math.cos(phi)
+            };
+
+            // Tangential velocity for orbital motion
+            const speed = 5 + Math.random() * 10;
+            vel = {
+              x: -pos.y * speed / r,
+              y: pos.x * speed / r,
+              z: (Math.random() - 0.5) * speed
+            };
+          } else if (distribution === 'disk') {
+            // Accretion disk distribution
+            const r = 50 + Math.random() * 250;
+            const theta = Math.random() * Math.PI * 2;
+
+            pos = {
+              x: r * Math.cos(theta),
+              y: (Math.random() - 0.5) * 20, // Thin disk
+              z: r * Math.sin(theta)
+            };
+
+            // Keplerian velocity
+            const speed = 15 / Math.sqrt(r);
+            vel = {
+              x: -Math.sin(theta) * speed,
+              y: 0,
+              z: Math.cos(theta) * speed
+            };
+          } else {
+            // Random cloud
+            pos = {
+              x: (Math.random() - 0.5) * 400,
+              y: (Math.random() - 0.5) * 400,
+              z: (Math.random() - 0.5) * 400
+            };
+            vel = {
+              x: (Math.random() - 0.5) * 20,
+              y: (Math.random() - 0.5) * 20,
+              z: (Math.random() - 0.5) * 20
+            };
+          }
+
+          const particle = new TestParticle(pos, vel, 1.0);
+          this.world.addBody(particle.body);
+          this.particles.push(particle);
+
+          // Create visual mesh
+          particle.mesh = BABYLON.MeshBuilder.CreateSphere(
+            `particle_${i}`,
+            { diameter: 2 },
+            this.scene
+          );
+
+          const material = new BABYLON.StandardMaterial(`particleMat_${i}`, this.scene);
+          material.emissiveColor = particle.color;
+          material.disableLighting = true;
+          particle.mesh.material = material;
+        }
+
+        this.stats.particleCount = this.particles.length;
+        console.log(`✨ Added ${count} test particles (${distribution} distribution)`);
+      }
+
+      step(dt) {
+        // Rebuild octree for this frame
+        this.octree.clear();
+        this.blackHoles.forEach(bh => {
+          this.octree.insert(bh);
+        });
+
+        let totalForce = 0;
+
+        // Calculate entropic forces
+        this.particles.forEach(particle => {
+          // Query nearby black holes (within 600 units)
+          const nearby = this.octree.queryRadius(particle.body.position, 600);
+
+          // Apply forces from each nearby black hole
+          nearby.forEach(bh => {
+            const F = bh.calculateEntropicForce(particle, this.forceScale);
+            particle.body.applyForce(F, particle.body.position);
+            totalForce += F.length();
+          });
+        });
+
+        // Step physics
+        this.world.step(dt);
+
+        // Update particles
+        const toRemove = [];
+        this.particles.forEach((particle, i) => {
+          particle.update(dt);
+
+          // Check horizon crossing
+          this.blackHoles.forEach(bh => {
+            if (bh.isInsideHorizon(particle)) {
+              toRemove.push(i);
+              this.stats.horizonCrossings++;
+            }
+          });
+
+          // Check expiration
+          if (particle.isExpired()) {
+            toRemove.push(i);
+          }
+        });
+
+        // Remove particles (in reverse to preserve indices)
+        toRemove.reverse().forEach(i => {
+          this.particles[i].dispose();
+          this.world.removeBody(this.particles[i].body);
+          this.particles.splice(i, 1);
+        });
+
+        this.stats.particleCount = this.particles.length;
+        this.stats.totalForce = totalForce;
+      }
+
+      getParticleDistribution() {
+        // Calculate spatial distribution of particles
+        // Group into regions around each black hole
+        const distribution = new Map();
+
+        this.blackHoles.forEach((bh, i) => {
+          distribution.set(i, { count: 0, avgDistance: 0 });
+        });
+
+        this.particles.forEach(p => {
+          // Find nearest black hole
+          let minDist = Infinity;
+          let nearestBH = 0;
+
+          this.blackHoles.forEach((bh, i) => {
+            const dist = p.body.position.vsub(bh.position).length();
+            if (dist < minDist) {
+              minDist = dist;
+              nearestBH = i;
+            }
+          });
+
+          const data = distribution.get(nearestBH);
+          data.count++;
+          data.avgDistance += minDist;
+        });
+
+        // Compute averages
+        distribution.forEach(data => {
+          if (data.count > 0) {
+            data.avgDistance /= data.count;
+          }
+        });
+
+        return distribution;
+      }
+
+      dispose() {
+        this.particles.forEach(p => p.dispose());
+        this.particles = [];
       }
     }
 
@@ -2166,6 +2661,15 @@
         this.lambdaState = new LambdaState();
         this.ledgerState = new GardenLedgerState();
         this.sonificationEngine = new HilbertSonificationEngine();
+
+        // Create scene FIRST (needed for PhysicsWorld)
+        this.scene = this.createScene();
+
+        // Physics world (requires scene)
+        this.physicsWorld = new PhysicsWorld(this.scene);
+
+        // Add primary black hole to physics
+        this.physicsWorld.addBlackHole(this.blackHole, { x: 0, y: 0, z: 0 });
         
         // Performance monitoring
         this.performanceMonitor = {
@@ -2181,15 +2685,13 @@
         window.blackHole = this.blackHole;
         window.breathOperator = this.breathOperator;
         window.lambdaState = this.lambdaState;
+        window.physicsWorld = this.physicsWorld;
         window.ledgerState = this.ledgerState;
         window.sonificationEngine = this.sonificationEngine;
 
         // Global event bus for cross-scroll Lambda sync
         window.GardenEventBus = window.GardenEventBus || new EventTarget();
-        
-        // Create scene
-        this.scene = this.createScene();
-        
+
         // Setup camera and controls
         this.setupCamera();
         
@@ -2964,18 +3466,43 @@
         // Pattern mode toggle
         document.getElementById('toggle-pattern').addEventListener('click', () => {
           this.boundaryPatternMode = (this.boundaryPatternMode + 1) % 3;
-          
+
           const patternNames = ['Random Noise', 'Central Pulse', 'Hexagonal Grid'];
           const patternBtn = document.getElementById('toggle-pattern');
           patternBtn.textContent = `Pattern: ${patternNames[this.boundaryPatternMode]}`;
-          
+
           console.log(`🎨 Pattern Mode: ${patternNames[this.boundaryPatternMode]}`);
-          this.ledgerState.recordInteraction('pattern_mode_change', { 
+          this.ledgerState.recordInteraction('pattern_mode_change', {
             mode: this.boundaryPatternMode,
             name: patternNames[this.boundaryPatternMode]
           });
         });
-        
+
+        // Physics particle spawning
+        document.getElementById('spawn-particles-sphere').addEventListener('click', () => {
+          this.physicsWorld.addTestParticles(100, 'sphere');
+          console.log('✨ Spawned 100 particles in spherical shell distribution');
+          this.updateParticleStats();
+        });
+
+        document.getElementById('spawn-particles-disk').addEventListener('click', () => {
+          this.physicsWorld.addTestParticles(100, 'disk');
+          console.log('✨ Spawned 100 particles in accretion disk distribution');
+          this.updateParticleStats();
+        });
+
+        document.getElementById('spawn-particles-cloud').addEventListener('click', () => {
+          this.physicsWorld.addTestParticles(100, 'cloud');
+          console.log('✨ Spawned 100 particles in random cloud distribution');
+          this.updateParticleStats();
+        });
+
+        document.getElementById('clear-particles').addEventListener('click', () => {
+          this.physicsWorld.dispose();
+          console.log('🗑️ Cleared all test particles');
+          this.updateParticleStats();
+        });
+
         // Enhanced rendering initialization
         document.getElementById('init-enhanced-rendering').addEventListener('click', () => {
           if (!this.shadersInitialized) {
@@ -3141,7 +3668,14 @@
             this.performanceMonitor.particleQualityLevel * 1.05);
         }
       }
-      
+
+      updateParticleStats() {
+        // Update particle count and horizon crossings in UI
+        const stats = this.physicsWorld.stats;
+        document.getElementById('particle-count').textContent = stats.particleCount;
+        document.getElementById('horizon-crossings').textContent = stats.horizonCrossings;
+      }
+
       updateMetricsDisplay() {
         // Calculate camera distance
         const cameraDistance = BABYLON.Vector3.Distance(
@@ -3235,6 +3769,9 @@
           // Update Hilbert field evolution
           this.hilbertField.applyResonanceOperator(deltaTime, 0.1);
 
+          // Step physics simulation (test particles + entropic forces)
+          this.physicsWorld.step(Math.min(deltaTime, 1/30)); // Clamp to prevent instability
+
           // Update breath operator with time dilation and entropy coupling
           const breathState = this.breathOperator.step(
             deltaTime,
@@ -3247,6 +3784,29 @@
 
           // Update Lambda (ℂ⁶) state from physics + breath
           this.lambdaState.updateFromPhysics(this.blackHole, breathState);
+
+          // Update Lambda from particle distribution (if particles exist)
+          if (this.physicsWorld.particles.length > 0) {
+            const distribution = this.physicsWorld.getParticleDistribution();
+            const totalParticles = this.physicsWorld.particles.length;
+
+            // |δ⟩ (Paradox) increases with system complexity (particle count)
+            this.lambdaState.lambda.δ.mag = Math.min(1.0,
+              (totalParticles / 100) * 0.5 + this.lambdaState.lambda.δ.mag * 0.5
+            );
+
+            // |ω⟩ (Wave) modulated by average particle distance variance
+            let distanceVariance = 0;
+            distribution.forEach(data => {
+              distanceVariance += data.avgDistance;
+            });
+            distanceVariance /= Math.max(1, distribution.size);
+            this.lambdaState.lambda.ω.mag = Math.min(1.0, distanceVariance / 300);
+
+            // Renormalize Lambda
+            this.lambdaState.normalize();
+            this.lambdaState.projectTriquetra();
+          }
 
           // Log Lambda state every 5 seconds for debugging
           if (Math.floor(Date.now() / 5000) % 2 === 0 && Math.floor(Date.now()) % 5000 < 100) {
@@ -3276,6 +3836,7 @@
           // Performance monitoring and adaptive quality (every 2 seconds)
           if (Math.floor(Date.now() / 2000) % 2 === 0) {
             this.updatePerformance();
+            this.updateParticleStats(); // Update particle count display
           }
           
           // Animate boundary bits with pattern modes
