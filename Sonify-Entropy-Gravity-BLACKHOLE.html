@@ -914,6 +914,20 @@
         <button id="reset-camera">Reset Camera</button>
       </div>
       <div class="control-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(168, 85, 247, 0.3);">
+        <label style="display: block; margin-bottom: 0.5rem; color: #fbbf24; font-weight: 600;">🎵 Memory Sonification</label>
+        <button id="toggle-memory-audio" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">Start Memory Audio</button>
+        <label style="margin-top: 0.5rem;">Volume: <span id="memory-volume-display">15%</span></label>
+        <input type="range" id="memory-volume-slider" min="0" max="100" step="5" value="15">
+        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-dim); line-height: 1.4;">
+          Sonifies memory operations:<br>
+          • Storage (entropy ↑) → Harmonic tones<br>
+          • Crystallization (gates) → Ascending sweeps<br>
+          • Resonance (wormholes) → Chord clusters<br>
+          • Retrieval (coherence ↑) → Arpeggios<br>
+          • Entropy spikes → Burst sounds
+        </div>
+      </div>
+      <div class="control-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(168, 85, 247, 0.3);">
         <label style="display: block; margin-bottom: 0.5rem; color: var(--highlight-amber); font-weight: 600;">⚛️ Physics Particles</label>
         <button id="spawn-particles-sphere" style="background: #10b981;">Spawn 100 (Sphere)</button>
         <button id="spawn-particles-disk" style="background: #3b82f6;">Spawn 100 (Disk)</button>
@@ -6119,6 +6133,700 @@
     }
 
     // ========================================
+    // MEMORY SONIFICATION ENGINE
+    // ========================================
+    //
+    // Pure audio layer that sonifies Memory Coherence Layer operations
+    // Maps memory storage, retrieval, crystallization, and resonance to sound
+    // Integrates with physics events: black hole mergers, particle interactions, state transitions
+    //
+    class MemorySonificationEngine {
+      constructor() {
+        // Audio context (lazy init on first user interaction)
+        this.audioContext = null;
+        this.masterGain = null;
+        this.isInitialized = false;
+        this.isEnabled = false;
+
+        // Audio parameters
+        this.config = {
+          // Base frequencies (Hz)
+          baseFrequency: 220,        // A3 - storage operations
+          resonanceFrequency: 330,   // E4 - resonance detection
+          crystalFrequency: 440,     // A4 - crystallization
+          chainFrequency: 165,       // E3 - reference chains
+
+          // Harmonic ratios (based on golden ratio φ)
+          phi: 1.618033988749,
+          phiMinusOne: 0.618033988749,
+
+          // Duration envelopes (ms)
+          attackTime: 20,
+          decayTime: 200,
+          releaseTime: 500,
+
+          // Master volume
+          masterVolume: 0.15,
+
+          // Resonance parameters
+          resonanceThreshold: 0.5,
+          maxHarmonics: 5,
+
+          // Frequency bounds
+          minFreq: 60,
+          maxFreq: 8000
+        };
+
+        // Event tracking for rhythm
+        this.lastEvents = {
+          storage: 0,
+          retrieval: 0,
+          crystallization: 0,
+          resonance: 0
+        };
+
+        // Metrics for auditory feedback
+        this.metrics = {
+          totalMemories: 0,
+          crystallizationRate: 0,
+          averageCoherence: 0,
+          resonanceStrength: 0,
+          lastCoherence: 0
+        };
+
+        // Advanced features
+        this.harmonicField = new Map(); // Memory signature -> sustained harmonic
+        this.harmonicFieldMaxAge = 60000; // 60 seconds
+        this.rhythmEngine = null;
+
+        // Cleanup interval
+        this.cleanupInterval = null;
+      }
+
+      // ═══════════════════════════════════════
+      // INITIALIZATION
+      // ═══════════════════════════════════════
+
+      /**
+       * Initialize audio context (requires user interaction)
+       */
+      async initialize() {
+        if (this.isInitialized) return true;
+
+        try {
+          // Create audio context
+          this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+          // Create master gain node
+          this.masterGain = this.audioContext.createGain();
+          this.masterGain.gain.value = this.config.masterVolume;
+          this.masterGain.connect(this.audioContext.destination);
+
+          // Initialize rhythm engine
+          this.rhythmEngine = new MemoryRhythmEngine(this.audioContext, this.masterGain);
+
+          // Start periodic cleanup
+          this.cleanupInterval = setInterval(() => this.cleanupHarmonicField(), 30000);
+
+          this.isInitialized = true;
+          console.log('🎵 Memory Sonification Engine initialized');
+          return true;
+        } catch (error) {
+          console.error('Failed to initialize memory audio:', error);
+          return false;
+        }
+      }
+
+      /**
+       * Resume audio context (needed after pause/background)
+       */
+      async resume() {
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+          await this.audioContext.resume();
+        }
+      }
+
+      /**
+       * Enable/disable sonification
+       */
+      setEnabled(enabled) {
+        this.isEnabled = enabled;
+      }
+
+      // ═══════════════════════════════════════
+      // MEMORY EVENT SONIFICATION
+      // ═══════════════════════════════════════
+
+      /**
+       * Sonify memory storage operation (e.g., black hole merger, state transition)
+       */
+      async onMemoryStored(memory) {
+        if (!this.isInitialized || !this.isEnabled) return;
+
+        try {
+          // Update metrics
+          this.metrics.totalMemories++;
+          this.metrics.lastCoherence = memory.coherence || 0.5;
+          this.lastEvents.storage = Date.now();
+
+          // Calculate frequency based on depth/importance
+          const depthFactor = 1 + ((memory.depth || 0) * 0.1);
+          let frequency = this.config.baseFrequency * depthFactor;
+          frequency = this.clampFrequency(frequency);
+
+          // Calculate amplitude based on coherence
+          const amplitude = 0.1 + (this.metrics.lastCoherence * 0.2);
+
+          // Play storage tone with phi-based harmonics
+          this.playHarmonicTone(
+            frequency,
+            amplitude,
+            this.config.attackTime,
+            this.config.decayTime,
+            memory.signature
+          );
+
+          // Add subtle rhythm pulse
+          if (this.rhythmEngine) {
+            this.rhythmEngine.pulse('storage', this.metrics.lastCoherence);
+          }
+
+          // If high coherence, add resonant bell
+          if (this.metrics.lastCoherence > 0.8) {
+            setTimeout(() => {
+              this.playBell(this.clampFrequency(frequency * this.config.phi), amplitude * 0.5);
+            }, 100);
+          }
+        } catch (error) {
+          console.error('Memory storage sonification error:', error);
+        }
+      }
+
+      /**
+       * Sonify memory retrieval/query
+       */
+      async onMemoryRetrieved(count, queryCoherence) {
+        if (!this.isInitialized || !this.isEnabled) return;
+
+        try {
+          this.lastEvents.retrieval = Date.now();
+
+          // Play descending arpeggio based on result count
+          const baseFreq = this.config.resonanceFrequency;
+          const noteCount = Math.min(count, 8);
+
+          for (let i = 0; i < noteCount; i++) {
+            setTimeout(() => {
+              const freq = this.clampFrequency(baseFreq * Math.pow(this.config.phiMinusOne, i * 0.5));
+              const amp = 0.08 * (1 - i / noteCount);
+              this.playTone(freq, amp, 50, 100);
+            }, i * 80);
+          }
+
+          // If high-coherence query, add harmonic resonance
+          if (queryCoherence > 0.7) {
+            setTimeout(() => {
+              this.playResonantChord(baseFreq, queryCoherence);
+            }, noteCount * 80 + 100);
+          }
+        } catch (error) {
+          console.error('Memory retrieval sonification error:', error);
+        }
+      }
+
+      /**
+       * Sonify memory crystallization (e.g., important state anchoring)
+       */
+      async onMemoryCrystallized(count) {
+        if (!this.isInitialized || !this.isEnabled) return;
+
+        try {
+          this.lastEvents.crystallization = Date.now();
+          this.metrics.crystallizationRate = count;
+
+          // Play crystallization sound - ascending pure tone
+          const freq = this.config.crystalFrequency;
+
+          // Sweep from base to phi harmonic
+          this.playSweep(
+            freq,
+            this.clampFrequency(freq * this.config.phi),
+            300,
+            0.15,
+            'exponential'
+          );
+
+          // Add shimmer effect for each crystallized memory
+          for (let i = 0; i < Math.min(count, 5); i++) {
+            setTimeout(() => {
+              this.playShimmer(this.clampFrequency(freq * (1 + i * 0.1)), 0.05);
+            }, i * 60);
+          }
+        } catch (error) {
+          console.error('Memory crystallization sonification error:', error);
+        }
+      }
+
+      /**
+       * Sonify resonant memory discovery (e.g., entangled black holes)
+       */
+      async onResonanceDetected(count, avgResonance) {
+        if (!this.isInitialized || !this.isEnabled) return;
+
+        try {
+          this.lastEvents.resonance = Date.now();
+          this.metrics.resonanceStrength = avgResonance;
+
+          // Play resonance tone - sustains based on strength
+          const baseFreq = this.config.resonanceFrequency;
+          const duration = 200 + (avgResonance * 800); // 200ms to 1000ms
+
+          // Create harmonic series representing resonant cluster
+          const harmonics = Math.min(count, this.config.maxHarmonics);
+
+          for (let i = 0; i < harmonics; i++) {
+            const harmonic = i + 1;
+            const freq = this.clampFrequency(baseFreq * harmonic * this.config.phiMinusOne);
+            const amp = 0.1 * avgResonance * (1 - i / harmonics);
+
+            setTimeout(() => {
+              this.playTone(freq, amp, 100, duration);
+            }, i * 50);
+          }
+
+          // Add rhythmic pulse representing resonance strength
+          if (this.rhythmEngine) {
+            this.rhythmEngine.pulse('resonance', avgResonance);
+          }
+        } catch (error) {
+          console.error('Memory resonance sonification error:', error);
+        }
+      }
+
+      /**
+       * Sonify entropy spike (sudden change in system)
+       */
+      async onEntropySpikeDetected(entropy, delta) {
+        if (!this.isInitialized || !this.isEnabled) return;
+
+        try {
+          const intensity = Math.min(1.0, delta / 10);
+          const freq = this.clampFrequency(this.config.baseFrequency * (1 + entropy * 0.5));
+
+          // Quick burst of noise-like tones
+          for (let i = 0; i < 3; i++) {
+            setTimeout(() => {
+              const randomFactor = 0.9 + Math.random() * 0.2;
+              this.playTone(freq * randomFactor, 0.08 * intensity, 10, 80);
+            }, i * 30);
+          }
+        } catch (error) {
+          console.error('Entropy spike sonification error:', error);
+        }
+      }
+
+      // ═══════════════════════════════════════
+      // SOUND GENERATION PRIMITIVES
+      // ═══════════════════════════════════════
+
+      /**
+       * Clamp frequency to safe hearing range
+       */
+      clampFrequency(freq) {
+        return Math.max(this.config.minFreq, Math.min(this.config.maxFreq, freq));
+      }
+
+      /**
+       * Play simple tone with cleanup
+       */
+      playTone(frequency, amplitude, attack = 50, duration = 200) {
+        try {
+          const osc = this.audioContext.createOscillator();
+          const gain = this.audioContext.createGain();
+
+          osc.type = 'sine';
+          osc.frequency.value = frequency;
+
+          const now = this.audioContext.currentTime;
+          const attackTime = attack / 1000;
+          const totalTime = duration / 1000;
+
+          gain.gain.setValueAtTime(0, now);
+          gain.gain.linearRampToValueAtTime(amplitude, now + attackTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + totalTime);
+
+          osc.connect(gain);
+          gain.connect(this.masterGain);
+
+          osc.start(now);
+          osc.stop(now + totalTime);
+
+          // CLEANUP: Disconnect nodes after stop
+          osc.onended = () => {
+            osc.disconnect();
+            gain.disconnect();
+          };
+        } catch (error) {
+          console.error('Tone generation error:', error);
+        }
+      }
+
+      /**
+       * Play harmonic tone with overtones
+       */
+      playHarmonicTone(fundamental, amplitude, attack, duration, signature) {
+        try {
+          const harmonics = [1, this.config.phi, this.config.phi * 1.5];
+          const amplitudes = [1.0, 0.618, 0.382]; // φ ratios
+
+          harmonics.forEach((ratio, i) => {
+            const freq = this.clampFrequency(fundamental * ratio);
+            const amp = amplitude * amplitudes[i];
+            this.playTone(freq, amp, attack, duration);
+          });
+
+          // Store in harmonic field if provided signature
+          if (signature) {
+            this.harmonicField.set(signature, {
+              frequency: fundamental,
+              amplitude: amplitude,
+              timestamp: Date.now()
+            });
+          }
+        } catch (error) {
+          console.error('Harmonic tone generation error:', error);
+        }
+      }
+
+      /**
+       * Play frequency sweep
+       */
+      playSweep(startFreq, endFreq, duration, amplitude, curve = 'linear') {
+        try {
+          const osc = this.audioContext.createOscillator();
+          const gain = this.audioContext.createGain();
+
+          osc.type = 'sine';
+
+          const now = this.audioContext.currentTime;
+          const durationSec = duration / 1000;
+
+          gain.gain.setValueAtTime(amplitude, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + durationSec);
+
+          osc.frequency.setValueAtTime(startFreq, now);
+
+          if (curve === 'exponential') {
+            osc.frequency.exponentialRampToValueAtTime(endFreq, now + durationSec);
+          } else {
+            osc.frequency.linearRampToValueAtTime(endFreq, now + durationSec);
+          }
+
+          osc.connect(gain);
+          gain.connect(this.masterGain);
+
+          osc.start(now);
+          osc.stop(now + durationSec);
+
+          // CLEANUP
+          osc.onended = () => {
+            osc.disconnect();
+            gain.disconnect();
+          };
+        } catch (error) {
+          console.error('Sweep generation error:', error);
+        }
+      }
+
+      /**
+       * Play resonant chord (3 notes in phi relationship)
+       */
+      playResonantChord(rootFreq, coherence) {
+        try {
+          const notes = [
+            rootFreq,
+            rootFreq * this.config.phiMinusOne,
+            rootFreq * this.config.phi
+          ];
+
+          const baseAmp = 0.08 * coherence;
+
+          notes.forEach((freq, i) => {
+            const amp = baseAmp * (1 - i * 0.2);
+            this.playTone(this.clampFrequency(freq), amp, 100, 400);
+          });
+        } catch (error) {
+          console.error('Chord generation error:', error);
+        }
+      }
+
+      /**
+       * Play bell-like tone
+       */
+      playBell(frequency, amplitude) {
+        try {
+          const osc = this.audioContext.createOscillator();
+          const gain = this.audioContext.createGain();
+
+          osc.type = 'sine';
+          osc.frequency.value = frequency;
+
+          const now = this.audioContext.currentTime;
+
+          gain.gain.setValueAtTime(amplitude, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+          osc.connect(gain);
+          gain.connect(this.masterGain);
+
+          osc.start(now);
+          osc.stop(now + 0.8);
+
+          // CLEANUP
+          osc.onended = () => {
+            osc.disconnect();
+            gain.disconnect();
+          };
+        } catch (error) {
+          console.error('Bell generation error:', error);
+        }
+      }
+
+      /**
+       * Play shimmer effect (high frequency sparkle)
+       */
+      playShimmer(baseFreq, amplitude) {
+        try {
+          const harmonics = [2, 3, 4, 5];
+
+          harmonics.forEach((harmonic, i) => {
+            setTimeout(() => {
+              const freq = this.clampFrequency(baseFreq * harmonic);
+              const amp = amplitude * (1 - i * 0.2);
+              this.playTone(freq, amp, 20, 100);
+            }, i * 15);
+          });
+        } catch (error) {
+          console.error('Shimmer generation error:', error);
+        }
+      }
+
+      // ═══════════════════════════════════════
+      // METRICS & CONTROL
+      // ═══════════════════════════════════════
+
+      /**
+       * Cleanup old harmonic field entries
+       */
+      cleanupHarmonicField() {
+        const now = Date.now();
+        for (const [signature, data] of this.harmonicField.entries()) {
+          if (now - data.timestamp > this.harmonicFieldMaxAge) {
+            this.harmonicField.delete(signature);
+          }
+        }
+      }
+
+      /**
+       * Set master volume
+       */
+      setVolume(volume) {
+        this.config.masterVolume = Math.max(0, Math.min(1, volume));
+        if (this.masterGain) {
+          this.masterGain.gain.value = this.config.masterVolume;
+        }
+      }
+
+      /**
+       * Get current metrics
+       */
+      getMetrics() {
+        return {
+          ...this.metrics,
+          isInitialized: this.isInitialized,
+          isEnabled: this.isEnabled,
+          harmonicFieldSize: this.harmonicField.size
+        };
+      }
+
+      /**
+       * Cleanup
+       */
+      dispose() {
+        if (this.cleanupInterval) {
+          clearInterval(this.cleanupInterval);
+        }
+
+        if (this.audioContext) {
+          this.audioContext.close();
+        }
+
+        this.harmonicField.clear();
+      }
+    }
+
+    // ========================================
+    // RHYTHM ENGINE FOR MEMORY SONIFICATION
+    // ========================================
+
+    class MemoryRhythmEngine {
+      constructor(audioContext, destination) {
+        this.audioContext = audioContext;
+        this.destination = destination;
+
+        // Pre-generate noise buffer for efficiency
+        this.noiseBuffer = this.createNoiseBuffer(0.1);
+
+        // Percussion synths (synthesized)
+        this.kick = this.createKickSynth();
+        this.snare = this.createSnareSynth();
+        this.hat = this.createHatSynth();
+      }
+
+      pulse(eventType, intensity) {
+        try {
+          const now = this.audioContext.currentTime;
+
+          switch (eventType) {
+            case 'storage':
+              this.kick.trigger(now, intensity * 0.3);
+              break;
+            case 'resonance':
+              this.snare.trigger(now, intensity * 0.2);
+              break;
+            case 'crystallization':
+              this.hat.trigger(now, intensity * 0.15);
+              break;
+          }
+        } catch (error) {
+          console.error('Rhythm pulse error:', error);
+        }
+      }
+
+      createNoiseBuffer(duration) {
+        const buffer = this.audioContext.createBuffer(
+          1,
+          this.audioContext.sampleRate * duration,
+          this.audioContext.sampleRate
+        );
+
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        return buffer;
+      }
+
+      createKickSynth() {
+        return {
+          trigger: (time, intensity) => {
+            try {
+              const osc = this.audioContext.createOscillator();
+              const gain = this.audioContext.createGain();
+
+              osc.frequency.setValueAtTime(150, time);
+              osc.frequency.exponentialRampToValueAtTime(40, time + 0.1);
+
+              gain.gain.setValueAtTime(intensity, time);
+              gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+
+              osc.connect(gain);
+              gain.connect(this.destination);
+
+              osc.start(time);
+              osc.stop(time + 0.15);
+
+              osc.onended = () => {
+                osc.disconnect();
+                gain.disconnect();
+              };
+            } catch (error) {
+              console.error('Kick synth error:', error);
+            }
+          }
+        };
+      }
+
+      createSnareSynth() {
+        return {
+          trigger: (time, intensity) => {
+            try {
+              const noise = this.audioContext.createBufferSource();
+              noise.buffer = this.noiseBuffer; // Reuse pre-generated buffer
+
+              const gain = this.audioContext.createGain();
+              gain.gain.setValueAtTime(intensity, time);
+              gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+
+              const filter = this.audioContext.createBiquadFilter();
+              filter.type = 'highpass';
+              filter.frequency.value = 1000;
+
+              noise.connect(filter);
+              filter.connect(gain);
+              gain.connect(this.destination);
+
+              noise.start(time);
+              noise.stop(time + 0.1);
+
+              noise.onended = () => {
+                noise.disconnect();
+                filter.disconnect();
+                gain.disconnect();
+              };
+            } catch (error) {
+              console.error('Snare synth error:', error);
+            }
+          }
+        };
+      }
+
+      createHatSynth() {
+        return {
+          trigger: (time, intensity) => {
+            try {
+              const osc1 = this.audioContext.createOscillator();
+              const osc2 = this.audioContext.createOscillator();
+              const gain = this.audioContext.createGain();
+
+              osc1.type = 'square';
+              osc2.type = 'square';
+              osc1.frequency.value = 300;
+              osc2.frequency.value = 315;
+
+              gain.gain.setValueAtTime(intensity * 0.5, time);
+              gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+
+              const filter = this.audioContext.createBiquadFilter();
+              filter.type = 'highpass';
+              filter.frequency.value = 5000;
+
+              osc1.connect(filter);
+              osc2.connect(filter);
+              filter.connect(gain);
+              gain.connect(this.destination);
+
+              osc1.start(time);
+              osc2.start(time);
+              osc1.stop(time + 0.05);
+              osc2.stop(time + 0.05);
+
+              osc1.onended = () => {
+                osc1.disconnect();
+                osc2.disconnect();
+                filter.disconnect();
+                gain.disconnect();
+              };
+            } catch (error) {
+              console.error('Hat synth error:', error);
+            }
+          }
+        };
+      }
+    }
+
+    // ========================================
     // GARDEN LEDGER PLACEHOLDER
     // ========================================
     
@@ -6601,6 +7309,7 @@
         this.lambdaState = new LambdaState();
         this.ledgerState = new GardenLedgerState();
         this.sonificationEngine = new HilbertSonificationEngine();
+        this.memorySonificationEngine = new MemorySonificationEngine();
 
         // Create scene FIRST (needed for PhysicsWorld)
         this.scene = this.createScene();
@@ -6636,6 +7345,7 @@
         window.physicsWorld = this.physicsWorld;
         window.ledgerState = this.ledgerState;
         window.sonificationEngine = this.sonificationEngine;
+        window.memorySonificationEngine = this.memorySonificationEngine;
 
         // Global event bus for cross-scroll Lambda sync
         window.GardenEventBus = window.GardenEventBus || new EventTarget();
@@ -7439,7 +8149,32 @@
           // Activate wave glyph (quantum superposition audio)
           this.ledgerState.activateGlyph('wave');
         });
-        
+
+        // Memory Audio controls
+        document.getElementById('toggle-memory-audio').addEventListener('click', async () => {
+          if (!this.memorySonificationEngine.isInitialized) {
+            await this.memorySonificationEngine.initialize();
+          }
+
+          const isEnabled = !this.memorySonificationEngine.isEnabled;
+          this.memorySonificationEngine.setEnabled(isEnabled);
+
+          const btn = document.getElementById('toggle-memory-audio');
+          btn.textContent = isEnabled ? 'Stop Memory Audio' : 'Start Memory Audio';
+          btn.style.background = isEnabled
+            ? 'linear-gradient(135deg, #16a34a 0%, #10b981 100%)'
+            : 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
+
+          console.log(`🎵 Memory Sonification: ${isEnabled ? 'ENABLED' : 'DISABLED'}`);
+          this.ledgerState.activateGlyph('seed'); // Memory/acorn glyph
+        });
+
+        document.getElementById('memory-volume-slider').addEventListener('input', (e) => {
+          const volume = parseInt(e.target.value) / 100;
+          this.memorySonificationEngine.setVolume(volume);
+          document.getElementById('memory-volume-display').textContent = `${e.target.value}%`;
+        });
+
         // Pattern mode toggle
         document.getElementById('toggle-pattern').addEventListener('click', () => {
           this.boundaryPatternMode = (this.boundaryPatternMode + 1) % 3;
@@ -7735,6 +8470,95 @@
       }
       
       // Update particle systems based on black hole thermodynamics
+      // ========================================
+      // MEMORY SONIFICATION SYSTEM INTEGRATION
+      // ========================================
+      // Triggers memory-themed audio events based on physics state changes
+      updateMemorySonification(breathState, deltaTime) {
+        if (!this.memorySonificationEngine.isEnabled) return;
+
+        // Track previous state for change detection
+        if (!this._prevMemoryState) {
+          this._prevMemoryState = {
+            entropy: this.hilbertField.entropy,
+            coherence: this.hilbertField.coherence,
+            lambdaMag: this.lambdaState.lambda.ι.mag,
+            hawkingEmissions: 0,
+            wormholeCount: this.physicsWorld.wormholes.length,
+            blackHoleCount: this.physicsWorld.blackHoles.length
+          };
+        }
+
+        const prev = this._prevMemoryState;
+
+        // 1. MEMORY STORAGE: Significant entropy increase (new information)
+        const entropyDelta = this.hilbertField.entropy - prev.entropy;
+        if (entropyDelta > 0.05) {
+          this.memorySonificationEngine.onMemoryStored({
+            coherence: this.hilbertField.coherence,
+            depth: this.lambdaState.lambda.ι.mag,
+            signature: `entropy_${Date.now()}`
+          });
+        }
+
+        // 2. MEMORY CRYSTALLIZATION: Lambda |ι⟩ (Memory) crosses threshold
+        if (this.lambdaState.gates.G1 && !prev.lambdaState?.gates?.G1) {
+          // Archive gate opened - crystallize memories
+          this.memorySonificationEngine.onMemoryCrystallized(
+            Math.floor(this.lambdaState.lambda.ι.mag * 5) + 1
+          );
+        }
+
+        // 3. RESONANCE DETECTION: Wormhole formation (entangled black holes)
+        if (this.physicsWorld.wormholes.length > prev.wormholeCount) {
+          const newWormholes = this.physicsWorld.wormholes.length - prev.wormholeCount;
+          const avgEntanglement = this.physicsWorld.wormholes.reduce(
+            (sum, w) => sum + (w.entanglement || 0.5), 0
+          ) / this.physicsWorld.wormholes.length;
+
+          this.memorySonificationEngine.onResonanceDetected(
+            newWormholes,
+            avgEntanglement
+          );
+        }
+
+        // 4. MEMORY RETRIEVAL: Coherence spike (information extraction)
+        const coherenceDelta = this.hilbertField.coherence - prev.coherence;
+        if (coherenceDelta > 0.1) {
+          const retrievalCount = Math.floor(coherenceDelta * 10);
+          this.memorySonificationEngine.onMemoryRetrieved(
+            retrievalCount,
+            this.hilbertField.coherence
+          );
+        }
+
+        // 5. ENTROPY SPIKE: Hawking emission burst
+        if (this.physicsWorld.hawkingEnabled) {
+          const timeSinceEmission = Date.now() - (this.physicsWorld.hawkingEmitter?.stats?.lastEmissionTime || 0);
+          if (timeSinceEmission < 100 && timeSinceEmission > 0) { // Fresh emission
+            this.memorySonificationEngine.onEntropySpikeDetected(
+              this.hilbertField.entropy,
+              Math.abs(entropyDelta)
+            );
+          }
+        }
+
+        // 6. BLACK HOLE MERGER: Major memory consolidation event
+        if (this.physicsWorld.blackHoles.length < prev.blackHoleCount) {
+          // Black holes merged - major crystallization
+          this.memorySonificationEngine.onMemoryCrystallized(10);
+          this.memorySonificationEngine.onResonanceDetected(5, 1.0);
+        }
+
+        // Update previous state
+        prev.entropy = this.hilbertField.entropy;
+        prev.coherence = this.hilbertField.coherence;
+        prev.lambdaMag = this.lambdaState.lambda.ι.mag;
+        prev.wormholeCount = this.physicsWorld.wormholes.length;
+        prev.blackHoleCount = this.physicsWorld.blackHoles.length;
+        prev.lambdaState = { gates: { ...this.lambdaState.gates } };
+      }
+
       updateParticleSystemsFromPhysics() {
         // Hawking radiation emission rate proportional to temperature
         const temperatureRatio = this.blackHole.temperature / 6.17e-8;
@@ -8610,7 +9434,11 @@
 
           // Update sonification system with camera distance for time dilation
           this.sonificationEngine.update(this.hilbertField, this.blackHole, cameraDistance, deltaTime, this.dilationCalculator, breathState, this.lambdaState);
-          
+
+          // ═══ MEMORY SONIFICATION INTEGRATION ═══
+          // Trigger memory sonification events based on physics state changes
+          this.updateMemorySonification(breathState, deltaTime);
+
           // Update particle systems from physics every 0.5 seconds
           if (Math.floor(Date.now() / 500) % 2 === 0) {
             this.updateParticleSystemsFromPhysics();
