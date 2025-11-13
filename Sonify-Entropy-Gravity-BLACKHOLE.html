@@ -1639,8 +1639,18 @@
 
       updateWormholes(lambdaState) {
         // Update all wormholes with current Lambda state
+        const isLIMNUSMode = this.blackHoles.length >= 63;
+
         this.wormholes.forEach(wormhole => {
-          wormhole.updateEntanglement(lambdaState);
+          if (isLIMNUSMode) {
+            // In LIMNUS mode, maintain constant high entanglement for neural network visualization
+            // This makes the network structure always visible
+            wormhole.entanglement = 0.6; // Fixed strong connection
+          } else {
+            // Normal mode: entanglement varies with Lambda state
+            wormhole.updateEntanglement(lambdaState);
+          }
+
           if (this.wormholesEnabled) {
             wormhole.updateVisual();
           }
@@ -1863,8 +1873,8 @@
             if (j > i && Math.random() < longRangeProb) {
               // Check if not already connected
               const alreadyConnected = this.wormholes.some(w =>
-                (w.blackHole1 === bh1 && w.blackHole2 === bh2) ||
-                (w.blackHole1 === bh2 && w.blackHole2 === bh1)
+                (w.bh1 === bh1 && w.bh2 === bh2) ||
+                (w.bh1 === bh2 && w.bh2 === bh1)
               );
               if (!alreadyConnected) {
                 const wormhole = new Wormhole(bh1, bh2, this.scene);
@@ -1875,6 +1885,14 @@
         });
 
         console.log(`✅ Created ${this.wormholes.length} wormhole synaptic connections`);
+
+        // Initialize all wormholes with baseline entanglement for LIMNUS mode
+        // This ensures they're visible regardless of Lambda state
+        this.wormholes.forEach(wormhole => {
+          wormhole.entanglement = 0.6; // Strong baseline for neural network visualization
+          wormhole.updateVisual(); // Force initial rendering
+        });
+        console.log(`✅ Rendered ${this.wormholes.length} wormhole visualizations`);
 
         // ========================================
         // SPAWN 1000 THOUGHT PARTICLES
@@ -2231,15 +2249,22 @@
           this.scene
         );
 
-        // Material: Purple glow that intensifies with entanglement
-        const material = new BABYLON.StandardMaterial('wormholeMat', this.scene);
+        // Material: Cyan-purple neural connection glow
+        const material = new BABYLON.StandardMaterial('wormholeMat_' + Math.random(), this.scene);
+
+        // Cyan/purple gradient for neural synapses
         material.emissiveColor = new BABYLON.Color3(
-          0.6 + 0.4 * this.entanglement, // R
-          0.2,                            // G
-          0.8 + 0.2 * this.entanglement  // B (more blue when entangled)
+          0.3 + 0.5 * this.entanglement, // R (purple component)
+          0.5 + 0.3 * this.entanglement, // G (cyan component)
+          0.9                             // B (strong blue)
         );
-        material.alpha = 0.3 + 0.4 * this.entanglement; // More opaque when entangled
-        material.wireframe = this.entanglement < 0.5; // Wireframe if weak
+
+        // Semi-transparent for better visualization
+        material.alpha = 0.4 + 0.3 * this.entanglement;
+        material.backFaceCulling = false; // Visible from both sides
+
+        // Solid for strong connections (>0.5), wireframe for weak
+        material.wireframe = this.entanglement < 0.5;
 
         this.tubeMesh.material = material;
       }
