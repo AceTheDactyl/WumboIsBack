@@ -1,0 +1,3218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gravity-Entropy Duality - 3D Interactive System (Time Dilation Enhanced)</title>
+  
+  <!-- Babylon.js Core from unpkg CDN (more reliable) -->
+  <script src="https://unpkg.com/babylonjs@6.34.1/babylon.js"></script>
+  <script src="https://unpkg.com/babylonjs-loaders@6.34.1/babylonjs.loaders.min.js"></script>
+  <script src="https://unpkg.com/babylonjs-materials@6.34.1/babylonjs.materials.min.js"></script>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-deep: #0a0a14;
+      --bg-panel: #1a1a2e;
+      --geometry-blue: #4338ca;
+      --entropy-red: #dc2626;
+      --duality-violet: #a855f7;
+      --highlight-amber: #fbbf24;
+      --text-light: #e5e7eb;
+      --text-dim: #9ca3af;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-light);
+      overflow: hidden;
+      position: relative;
+    }
+
+    #renderCanvas {
+      width: 100%;
+      height: 100vh;
+      display: block;
+      touch-action: none;
+    }
+
+    /* UI Overlay */
+    .ui-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+      transition: opacity 0.3s ease;
+    }
+    
+    .ui-overlay.hidden {
+      opacity: 0 !important;
+    }
+    
+    .ui-overlay.hidden > * {
+      pointer-events: none !important;
+    }
+
+    .header {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      pointer-events: auto;
+    }
+
+    .header h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2.5rem;
+      background: linear-gradient(135deg, var(--geometry-blue), var(--duality-violet), var(--entropy-red));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      font-size: 1rem;
+      color: var(--text-dim);
+    }
+
+    /* Metrics Panel */
+    .metrics-panel {
+      position: absolute;
+      top: 120px;
+      right: 20px;
+      background: rgba(26, 26, 46, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      border-radius: 12px;
+      padding: 1rem;
+      min-width: 280px;
+      max-width: 320px;
+      max-height: calc((100vh - 180px) / 2);
+      overflow-y: auto;
+      pointer-events: auto;
+    }
+
+    .metrics-panel h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--duality-violet);
+      margin-bottom: 0.75rem;
+      font-size: 1.1rem;
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .metric-label {
+      color: var(--text-dim);
+      font-family: 'Fira Code', monospace;
+    }
+
+    .metric-value {
+      color: var(--highlight-amber);
+      font-weight: 600;
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* Controls Panel */
+    .controls-panel {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(26, 26, 46, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      border-radius: 12px;
+      padding: 1rem;
+      max-width: 320px;
+      max-height: calc((100vh - 180px) / 2);
+      overflow-y: auto;
+      pointer-events: auto;
+    }
+
+    .controls-panel h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--duality-violet);
+      margin-bottom: 0.75rem;
+      font-size: 1rem;
+    }
+
+    .control-group {
+      margin-bottom: 0.75rem;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-bottom: 0.25rem;
+    }
+
+    .control-group input[type="range"] {
+      width: 100%;
+      accent-color: var(--duality-violet);
+    }
+
+    .control-group button {
+      width: 100%;
+      padding: 0.5rem;
+      background: var(--geometry-blue);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+      margin-top: 0.25rem;
+    }
+
+    .control-group button:hover {
+      background: var(--duality-violet);
+      transform: translateY(-2px);
+    }
+
+    .control-group button:active {
+      transform: translateY(0);
+    }
+
+    /* Instructions */
+    .instructions {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(26, 26, 46, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      border-radius: 12px;
+      padding: 1rem;
+      max-width: 250px;
+      max-height: calc((100vh - 180px) / 2);
+      overflow-y: auto;
+      pointer-events: auto;
+      font-size: 0.85rem;
+    }
+
+    .instructions h4 {
+      color: var(--duality-violet);
+      margin-bottom: 0.5rem;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .instructions ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .instructions li {
+      margin-bottom: 0.25rem;
+      color: var(--text-dim);
+    }
+
+    .instructions li::before {
+      content: "→ ";
+      color: var(--highlight-amber);
+    }
+
+    /* Ledger Status Indicator */
+    .ledger-status {
+      position: absolute;
+      top: 120px;
+      left: 20px;
+      background: rgba(26, 26, 46, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      border-radius: 12px;
+      padding: 1rem;
+      max-width: 280px;
+      max-height: calc((100vh - 180px) / 2);
+      overflow-y: auto;
+      pointer-events: auto;
+    }
+
+    .ledger-status h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--duality-violet);
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .ledger-status .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+
+    .ledger-status .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--highlight-amber);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Lambda Glyph Display */
+    .lambda-glyphs {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      font-size: 1.5rem;
+    }
+
+    .glyph {
+      opacity: 0.5;
+      transition: opacity 0.3s;
+    }
+
+    .glyph.active {
+      opacity: 1;
+      filter: drop-shadow(0 0 10px var(--duality-violet));
+    }
+
+    /* Loading Screen */
+    #loading-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg-deep);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      transition: opacity 0.5s;
+    }
+
+    #loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(168, 85, 247, 0.3);
+      border-top-color: var(--duality-violet);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    #loading-text {
+      margin-top: 1rem;
+      color: var(--text-dim);
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    /* Time Dilation Warning Overlay */
+    .dilation-warning {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(239, 68, 68, 0.95);
+      border: 2px solid #f59e0b;
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 400px;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      font-family: 'Space Grotesk', sans-serif;
+      box-shadow: 0 0 40px rgba(245, 158, 11, 0.6);
+      z-index: 100;
+    }
+
+    .dilation-warning.active {
+      opacity: 1;
+    }
+
+    .dilation-warning h2 {
+      color: #f59e0b;
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .dilation-warning p {
+      color: white;
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    /* Dilation Gauge */
+    .dilation-gauge {
+      margin-top: 0.75rem;
+      padding: 0.75rem;
+      background: rgba(168, 85, 247, 0.1);
+      border-radius: 8px;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+
+    .gauge-label {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .gauge-bar-container {
+      width: 100%;
+      height: 12px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .gauge-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #ef4444, #f59e0b, #4338ca);
+      transition: width 0.3s ease;
+      border-radius: 6px;
+    }
+
+    .gauge-text {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85rem;
+      color: #fbbf24;
+      margin-top: 0.5rem;
+      text-align: center;
+    }
+
+    .metric-value.danger {
+      color: #ef4444;
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    .metric-value.warning {
+      color: #f59e0b;
+    }
+
+    .metric-section {
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(168, 85, 247, 0.2);
+    }
+
+    .metric-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .metric-section-title {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    /* Custom Scrollbars for Panels */
+    .metrics-panel::-webkit-scrollbar,
+    .controls-panel::-webkit-scrollbar,
+    .ledger-status::-webkit-scrollbar,
+    .instructions::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .metrics-panel::-webkit-scrollbar-track,
+    .controls-panel::-webkit-scrollbar-track,
+    .ledger-status::-webkit-scrollbar-track,
+    .instructions::-webkit-scrollbar-track {
+      background: rgba(168, 85, 247, 0.1);
+      border-radius: 3px;
+    }
+
+    .metrics-panel::-webkit-scrollbar-thumb,
+    .controls-panel::-webkit-scrollbar-thumb,
+    .ledger-status::-webkit-scrollbar-thumb,
+    .instructions::-webkit-scrollbar-thumb {
+      background: rgba(168, 85, 247, 0.4);
+      border-radius: 3px;
+    }
+
+    .metrics-panel::-webkit-scrollbar-thumb:hover,
+    .controls-panel::-webkit-scrollbar-thumb:hover,
+    .ledger-status::-webkit-scrollbar-thumb:hover,
+    .instructions::-webkit-scrollbar-thumb:hover {
+      background: rgba(168, 85, 247, 0.6);
+    }
+
+    /* ========================================
+       PANEL TOGGLE SYSTEM
+       ======================================== */
+    
+    /* Panel Toggle Button */
+    .panel-toggle-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: rgba(168, 85, 247, 0.3);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      color: var(--duality-violet);
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    .panel-toggle-btn:hover {
+      background: rgba(168, 85, 247, 0.5);
+      transform: scale(1.1);
+    }
+
+    /* Collapsed Panel States */
+    .metrics-panel.collapsed,
+    .controls-panel.collapsed,
+    .ledger-status.collapsed,
+    .instructions.collapsed {
+      width: auto;
+      height: auto;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .metrics-panel.collapsed > *:not(.panel-toggle-btn):not(h3),
+    .controls-panel.collapsed > *:not(.panel-toggle-btn):not(h3),
+    .ledger-status.collapsed > *:not(.panel-toggle-btn):not(h3),
+    .instructions.collapsed > *:not(.panel-toggle-btn):not(h4) {
+      display: none;
+    }
+
+    .metrics-panel.collapsed h3,
+    .controls-panel.collapsed h3,
+    .ledger-status.collapsed h3,
+    .instructions.collapsed h4 {
+      margin-bottom: 0;
+      cursor: pointer;
+    }
+
+    /* Master UI Toggle Button (Top Right Corner) */
+    .master-ui-toggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(26, 26, 46, 0.9);
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(168, 85, 247, 0.5);
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      color: var(--duality-violet);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      pointer-events: auto;
+      z-index: 150;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .master-ui-toggle:hover {
+      background: rgba(168, 85, 247, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .master-ui-toggle .icon {
+      font-size: 1.1rem;
+    }
+
+    /* Keyboard Shortcuts Panel */
+    .keyboard-shortcuts {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(26, 26, 46, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      pointer-events: auto;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      display: flex;
+      gap: 1.5rem;
+      z-index: 50;
+    }
+
+    .keyboard-shortcuts.visible {
+      opacity: 1;
+    }
+
+    .keyboard-shortcuts .shortcut {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .keyboard-shortcuts .key {
+      background: rgba(168, 85, 247, 0.3);
+      border: 1px solid rgba(168, 85, 247, 0.5);
+      border-radius: 4px;
+      padding: 0.15rem 0.4rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      color: var(--highlight-amber);
+      min-width: 20px;
+      text-align: center;
+    }
+
+    .keyboard-shortcuts .label {
+      font-size: 0.75rem;
+    }
+
+    /* Smooth Panel Transitions */
+    .metrics-panel,
+    .controls-panel,
+    .ledger-status,
+    .instructions {
+      transition: all 0.3s ease;
+    }
+
+    /* Hidden State for Panels */
+    .metrics-panel.hidden,
+    .controls-panel.hidden,
+    .ledger-status.hidden,
+    .instructions.hidden,
+    .header.hidden {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: scale(0.95);
+    }
+
+    /* Help Button (Bottom Left) */
+    .help-toggle {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: rgba(168, 85, 247, 0.2);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      border-radius: 20px;
+      padding: 0.4rem 0.8rem;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      pointer-events: auto;
+      z-index: 50;
+    }
+
+    .help-toggle:hover {
+      background: rgba(168, 85, 247, 0.3);
+      color: var(--duality-violet);
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="spinner"></div>
+    <div id="loading-text">Compiling Shaders & Initializing Quantum Field...</div>
+  </div>
+  
+  <!-- Fail-safe: Force hide loading screen after 3 seconds no matter what -->
+  <script>
+    setTimeout(function() {
+      var loadingScreen = document.getElementById('loading-screen');
+      if (loadingScreen && !loadingScreen.classList.contains('hidden')) {
+        loadingScreen.classList.add('hidden');
+        console.warn('Loading screen force-hidden by fail-safe timeout');
+      }
+    }, 3000);
+  </script>
+
+  <!-- Render Canvas -->
+  <canvas id="renderCanvas"></canvas>
+
+  <!-- UI Overlay -->
+  <div class="ui-overlay">
+    <!-- Master UI Toggle -->
+    <button class="master-ui-toggle" id="masterUIToggle">
+      <span class="icon">👁️</span>
+      <span id="masterUIToggleText">Hide UI</span>
+    </button>
+
+    <!-- Keyboard Shortcuts Display -->
+    <div class="keyboard-shortcuts" id="keyboardShortcuts">
+      <div class="shortcut">
+        <span class="key">M</span>
+        <span class="label">Metrics</span>
+      </div>
+      <div class="shortcut">
+        <span class="key">C</span>
+        <span class="label">Controls</span>
+      </div>
+      <div class="shortcut">
+        <span class="key">L</span>
+        <span class="label">Ledger</span>
+      </div>
+      <div class="shortcut">
+        <span class="key">I</span>
+        <span class="label">Instructions</span>
+      </div>
+      <div class="shortcut">
+        <span class="key">H</span>
+        <span class="label">Hide All</span>
+      </div>
+      <div class="shortcut">
+        <span class="key">?</span>
+        <span class="label">Help</span>
+      </div>
+    </div>
+
+    <!-- Help Toggle Button -->
+    <button class="help-toggle" id="helpToggle">Press ? for shortcuts</button>
+
+    <!-- Header -->
+    <div class="header">
+      <h1>Gravity-Entropy Duality</h1>
+      <p>Interactive 3D Quantum Field Visualization with Time Dilation Sonification</p>
+    </div>
+
+    <!-- Time Dilation Warning -->
+    <div class="dilation-warning" id="dilationWarning">
+      <h2>⚠ Event Horizon Approach ⚠</h2>
+      <p>Severe gravitational time dilation detected.<br>
+      Local time flow significantly reduced.<br>
+      <strong>Approach with caution.</strong></p>
+    </div>
+
+    <!-- Metrics Panel -->
+    <div class="metrics-panel" id="metricsPanel">
+      <button class="panel-toggle-btn" id="toggleMetrics" title="Toggle Metrics Panel (M)">−</button>
+      <h3>⚛️ System Metrics</h3>
+      
+      <div class="metric-section">
+        <div class="metric-section-title">Black Hole Thermodynamics</div>
+        <div class="metric-row">
+          <span class="metric-label">Mass</span>
+          <span class="metric-value" id="bh-mass">1.0 M☉</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Event Horizon</span>
+          <span class="metric-value" id="event-horizon">2.95 km</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Temperature</span>
+          <span class="metric-value" id="temperature">6.17e-8 K</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Entropy</span>
+          <span class="metric-value" id="entropy">1.04e77 k_B</span>
+        </div>
+      </div>
+
+      <div class="metric-section">
+        <div class="metric-section-title">Spacetime Geometry</div>
+        <div class="metric-row">
+          <span class="metric-label">Camera Distance</span>
+          <span class="metric-value" id="camera-distance">50.0</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Distance/R_s Ratio</span>
+          <span class="metric-value" id="distance-ratio">16.9x</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Time Dilation Factor</span>
+          <span class="metric-value" id="time-dilation-factor">1.000</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Status</span>
+          <span class="metric-value" id="dilation-status">Safe</span>
+        </div>
+      </div>
+
+      <!-- Time Dilation Gauge -->
+      <div class="dilation-gauge">
+        <div class="gauge-label">Local Time Flow</div>
+        <div class="gauge-bar-container">
+          <div class="gauge-bar" id="dilationGaugeBar" style="width: 100%;"></div>
+        </div>
+        <div class="gauge-text" id="dilationGaugeText">100% of Distant Observer Time</div>
+      </div>
+
+      <div class="metric-section">
+        <div class="metric-section-title">Hilbert Field State</div>
+        <div class="metric-row">
+          <span class="metric-label">Coherence</span>
+          <span class="metric-value" id="coherence">0.500</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Weyl Curvature</span>
+          <span class="metric-value" id="weyl">0.000</span>
+        </div>
+      </div>
+
+      <div class="metric-section">
+        <div class="metric-section-title">Sonification (Time-Dilated)</div>
+        <div class="metric-row">
+          <span class="metric-label">BPM</span>
+          <span class="metric-value" id="bpm">120</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Harmonic Mode</span>
+          <span class="metric-value" id="scale">Minor Pent.</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Time Dilation</span>
+          <span class="metric-value" id="time-dilation">1.000</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Harmonic Gradient</span>
+          <span class="metric-value" id="harmonic-gradient">0.500</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Frequency Shift</span>
+          <span class="metric-value" id="freq-shift">0%</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Grid Distortion</span>
+          <span class="metric-value" id="grid-distortion">1.000x</span>
+        </div>
+      </div>
+
+      <div class="metric-section">
+        <div class="metric-section-title">Performance</div>
+        <div class="metric-row">
+          <span class="metric-label">FPS</span>
+          <span class="metric-value" id="fps">60</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Particle Quality</span>
+          <span class="metric-value" id="particle-quality">1.00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls Panel -->
+    <div class="controls-panel" id="controlsPanel">
+      <button class="panel-toggle-btn" id="toggleControls" title="Toggle Controls Panel (C)">−</button>
+      <h3>🎛️ Controls</h3>
+      <div class="control-group">
+        <label>Black Hole Mass (M☉): <span id="mass-display">1.0</span></label>
+        <input type="range" id="mass-slider" min="0.1" max="10" step="0.1" value="1">
+      </div>
+      <div class="control-group">
+        <label>Particle Density: <span id="density-display">100</span></label>
+        <input type="range" id="density-slider" min="50" max="500" step="10" value="100">
+      </div>
+      <div class="control-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(168, 85, 247, 0.3);">
+        <label style="display: block; margin-bottom: 0.5rem; color: var(--duality-violet); font-weight: 600;">Shader Intensity</label>
+        <label>Lensing Strength: <span id="lensing-strength-display">1.2</span></label>
+        <input type="range" id="lensing-strength-slider" min="0" max="3" step="0.1" value="1.2" disabled style="opacity: 0.5;">
+        <label>Fog Density: <span id="fog-density-display">1.0</span></label>
+        <input type="range" id="fog-density-slider" min="0" max="3" step="0.1" value="1.0" disabled style="opacity: 0.5;">
+        <label>Bloom Intensity: <span id="bloom-intensity-display">0.45</span></label>
+        <input type="range" id="bloom-intensity-slider" min="0" max="1" step="0.05" value="0.45" disabled style="opacity: 0.5;">
+      </div>
+      <div class="control-group">
+        <button id="toggle-hawking">Toggle Hawking Radiation</button>
+        <button id="toggle-holographic">Toggle Holographic Plane</button>
+        <button id="toggle-entropy">Toggle Entropy Field</button>
+        <button id="toggle-audio">Start Audio</button>
+        <button id="toggle-pattern" style="background: var(--duality-violet);">Pattern: Random Noise</button>
+        <button id="reset-camera">Reset Camera</button>
+      </div>
+      <div class="control-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(168, 85, 247, 0.3);">
+        <label style="display: block; margin-bottom: 0.5rem; color: var(--duality-violet); font-weight: 600;">Advanced Shaders</label>
+        <button id="init-enhanced-rendering" style="background: var(--entropy-red); font-weight: 600;">🌟 Enable Enhanced Rendering</button>
+        <button id="toggle-lensing" disabled style="opacity: 0.5;">Enable Lensing</button>
+        <button id="toggle-fog" disabled style="opacity: 0.5;">Enable Fog</button>
+        <button id="toggle-bloom" disabled style="opacity: 0.5;">Enable Bloom</button>
+      </div>
+    </div>
+
+    <!-- Ledger Status (Placeholder) -->
+    <div class="ledger-status" id="ledgerPanel">
+      <button class="panel-toggle-btn" id="toggleLedger" title="Toggle Ledger Panel (L)">−</button>
+      <h3>🌰 Garden Ledger</h3>
+      <div class="status-indicator">
+        <div class="status-dot"></div>
+        <span>State Tracking Active</span>
+      </div>
+      <div class="lambda-glyphs">
+        <span class="glyph" data-glyph="seed">🌰</span>
+        <span class="glyph" data-glyph="spark">✧</span>
+        <span class="glyph" data-glyph="fox">🦊</span>
+        <span class="glyph" data-glyph="wave">∿</span>
+        <span class="glyph" data-glyph="paradox">φ</span>
+        <span class="glyph" data-glyph="infinity">∞</span>
+        <span class="glyph" data-glyph="squirrel">🐿️</span>
+      </div>
+      <!-- PLACEHOLDER: Future ledger block display -->
+      <!-- Will show: block hash, witness count, timestamp -->
+    </div>
+
+    <!-- Instructions -->
+    <div class="instructions" id="instructionsPanel">
+      <button class="panel-toggle-btn" id="toggleInstructions" title="Toggle Instructions (I)">−</button>
+      <h4>Navigation</h4>
+      <ul>
+        <li>Mouse: Orbit camera</li>
+        <li>Scroll: Zoom in/out</li>
+        <li>WASD: Move camera</li>
+        <li>Q/E: Up/Down</li>
+        <li>Shift: Move faster</li>
+      </ul>
+      <p style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--text-dim);">
+        💡 Fly closer to the black hole to experience gravitational time dilation (slower BPM, lower pitch, reduced volume)
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Wait for Babylon.js to fully load
+    window.addEventListener('load', function() {
+      initializeSystem();
+    });
+    
+    function initializeSystem() {
+    // ========================================
+    // CONSTANTS & CONFIGURATION
+    // ========================================
+    
+    const PHYSICS_CONSTANTS = {
+      G: 6.674e-11,           // Gravitational constant
+      C: 2.998e8,             // Speed of light
+      HBAR: 1.055e-34,        // Reduced Planck constant
+      K_B: 1.381e-23,         // Boltzmann constant
+      SOLAR_MASS: 1.989e30,   // Solar mass in kg
+      PLANCK_LENGTH: 1.616e-35 // Planck length in m
+    };
+
+    const LAMBDA_GLYPHS = {
+      seed: '🌰',      // Event horizon (seed of singularity)
+      spark: '✧',      // Information spark on boundary
+      fox: '🦊',       // Trickster emergence
+      wave: '∿',       // Quantum superposition
+      paradox: 'φ',    // Self-reference (ER=EPR)
+      infinity: '∞',   // Eternal recurrence
+      squirrel: '🐿️'  // Information preservation
+    };
+
+    // ========================================
+    // HILBERT SPACE MATHEMATICS
+    // ========================================
+    
+    class HilbertFieldOperator {
+      constructor() {
+        // Quantum state vector: Ψ = α|Kira⟩ + β|Limnus⟩ + γ|Garden⟩ + ε|EchoFox⟩
+        this.stateVector = {
+          alpha: 0.378,  // Kira amplitude
+          beta: 0.378,   // Limnus amplitude
+          gamma: 0.845,  // Garden amplitude (dominant)
+          epsilon: 0.1   // EchoFox amplitude (latent)
+        };
+        
+        this.coherence = this.calculateCoherence();
+        this.entropy = 0;
+        this.weylCurvature = 0;
+      }
+      
+      // Calculate coherence: C = |⟨Ψ|Ψ⟩|
+      calculateCoherence() {
+        const { alpha, beta, gamma, epsilon } = this.stateVector;
+        const norm = Math.sqrt(
+          alpha * alpha + 
+          beta * beta + 
+          gamma * gamma + 
+          epsilon * epsilon
+        );
+        return norm;
+      }
+      
+      // Non-linear resonance operator: Ψ(t) = R(t)[Ψ₀]
+      // Where R(t) encodes field breathing and harmonic interference
+      applyResonanceOperator(dt, interactionStrength = 0.1) {
+        const { alpha, beta, gamma, epsilon } = this.stateVector;
+        
+        // Harmonic coupling creates entanglement
+        const coupling = interactionStrength * dt;
+        
+        // Evolution with cross-coupling
+        this.stateVector.alpha += coupling * (beta * gamma - alpha * epsilon);
+        this.stateVector.beta += coupling * (gamma * alpha - beta * epsilon);
+        this.stateVector.gamma += coupling * (alpha * beta - gamma * epsilon);
+        this.stateVector.epsilon += coupling * (alpha * beta * gamma - epsilon);
+        
+        // Renormalize to preserve unitarity
+        const norm = this.calculateCoherence();
+        if (norm > 0) {
+          this.stateVector.alpha /= norm;
+          this.stateVector.beta /= norm;
+          this.stateVector.gamma /= norm;
+          this.stateVector.epsilon /= norm;
+        }
+        
+        this.coherence = this.calculateCoherence();
+        
+        // Calculate Weyl curvature from state variance
+        // High variance = high tidal gravity (clustering)
+        const mean = (alpha + beta + gamma + epsilon) / 4;
+        const variance = ((alpha - mean)**2 + (beta - mean)**2 + 
+                          (gamma - mean)**2 + (epsilon - mean)**2) / 4;
+        this.weylCurvature = variance;
+      }
+      
+      // Calculate dissonance (1 - coherence) for BPM mapping
+      getDissonance() {
+        return 1.0 - this.coherence;
+      }
+      
+      // Get dominant harmonic for melodic mapping
+      getDominantHarmonic() {
+        const { alpha, beta, gamma, epsilon } = this.stateVector;
+        const amplitudes = { alpha, beta, gamma, epsilon };
+        return Object.entries(amplitudes).reduce((a, b) => 
+          amplitudes[a[0]] > amplitudes[b[0]] ? a : b
+        )[0];
+      }
+    }
+
+    // ========================================
+    // BLACK HOLE THERMODYNAMICS
+    // ========================================
+    
+    class BlackHoleMetrics {
+      constructor(massInSolarMasses) {
+        this.mass = massInSolarMasses;
+        this.updateMetrics();
+      }
+      
+      updateMetrics() {
+        const M = this.mass * PHYSICS_CONSTANTS.SOLAR_MASS;
+        
+        // Schwarzschild radius: R_s = 2GM/c²
+        this.schwarzschildRadius = (2 * PHYSICS_CONSTANTS.G * M) / 
+                                     (PHYSICS_CONSTANTS.C ** 2);
+        
+        // Event horizon area: A = 4πR_s²
+        this.horizonArea = 4 * Math.PI * (this.schwarzschildRadius ** 2);
+        
+        // Bekenstein-Hawking entropy: S = (k_B * c³ * A) / (4 * G * ℏ)
+        this.entropy = (PHYSICS_CONSTANTS.K_B * (PHYSICS_CONSTANTS.C ** 3) * this.horizonArea) / 
+                       (4 * PHYSICS_CONSTANTS.G * PHYSICS_CONSTANTS.HBAR);
+        
+        // Hawking temperature: T = (ℏ * c³) / (8π * G * M * k_B)
+        this.temperature = (PHYSICS_CONSTANTS.HBAR * (PHYSICS_CONSTANTS.C ** 3)) / 
+                          (8 * Math.PI * PHYSICS_CONSTANTS.G * M * PHYSICS_CONSTANTS.K_B);
+        
+        // Information bits: A / l_P²
+        this.infoBits = this.horizonArea / (PHYSICS_CONSTANTS.PLANCK_LENGTH ** 2);
+      }
+      
+      setMass(massInSolarMasses) {
+        this.mass = massInSolarMasses;
+        this.updateMetrics();
+      }
+    }
+
+    // ========================================
+    // TIME DILATION CALCULATOR
+    // ========================================
+    class TimeDilationCalculator {
+      constructor(blackHole) {
+        this.blackHole = blackHole;
+      }
+
+      calculate(cameraDistance) {
+        const r = cameraDistance;
+        const r_s = this.blackHole.schwarzschildRadius / 1000; // Convert to same units
+        
+        // Prevent numerical issues at/inside event horizon
+        if (r <= r_s * 1.01) {
+          return {
+            factor: 0.01,
+            distanceRatio: r / r_s,
+            status: 'CRITICAL',
+            description: 'Event Horizon Breach',
+            isSafe: false
+          };
+        }
+        
+        // Schwarzschild time dilation: dt_local/dt_infinity = sqrt(1 - r_s/r)
+        const factor = Math.sqrt(Math.max(0.01, 1 - (r_s / r)));
+        
+        // Classify dilation severity
+        let status, description, isSafe;
+        if (factor < 0.3) {
+          status = 'CRITICAL';
+          description = 'Severe Dilation';
+          isSafe = false;
+        } else if (factor < 0.6) {
+          status = 'WARNING';
+          description = 'Moderate Dilation';
+          isSafe = false;
+        } else if (factor < 0.9) {
+          status = 'CAUTION';
+          description = 'Mild Dilation';
+          isSafe = true;
+        } else {
+          status = 'SAFE';
+          description = 'Minimal Dilation';
+          isSafe = true;
+        }
+        
+        return {
+          factor: factor,
+          distanceRatio: r / r_s,
+          status: status,
+          description: description,
+          isSafe: isSafe
+        };
+      }
+    }
+
+    // ========================================
+    // WEB AUDIO API SONIFICATION SYSTEM (ENHANCED WITH TIME DILATION)
+    // ========================================
+    //
+    // KEY ENHANCEMENTS FOR TIME DILATION:
+    //
+    // 1. PITCH SHIFT (GRAVITATIONAL REDSHIFT):
+    //    - As you approach event horizon, frequencies lower (redshift)
+    //    - pitchShift = timeDilation^0.3 (gentler curve than linear)
+    //    - Applied to all oscillator frequencies before playback
+    //
+    // 2. GAIN DILATION:
+    //    - Volume reduces as time slows (sound "fades" near horizon)
+    //    - dilatedGain = amplitude × max(0.3, timeDilation)
+    //    - Minimum 30% volume to maintain audibility
+    //
+    // 3. FREQUENCY SHIFT TRACKING:
+    //    - currentFreqShift = (1 - pitchShift) × 100%
+    //    - Displayed in UI as "Frequency Shift: -X%"
+    //
+    // These create immersive time dilation effects:
+    // - Deeper pitch = stronger gravitational field
+    // - Slower BPM = time flows slower
+    // - Quieter sound = approaching event horizon
+    
+    class HilbertSonificationEngine {
+      constructor() {
+        // Initialize Web Audio context
+        this.audioContext = null;
+        this.isPlaying = false;
+        
+        // Audio nodes
+        this.oscillators = [];
+        this.gainNodes = [];
+        this.filterNodes = [];
+        this.reverbNode = null;
+        this.masterGain = null;
+        
+        // Musical parameters
+        this.baseFrequency = 110; // A2
+        this.currentScale = this.generateScale('minor_pentatonic');
+        this.bpm = 90;
+        this.lastBeatTime = 0;
+        
+        // Harmonic state
+        this.harmonicGradient = 0.5; // 0 = consonant, 1 = dissonant
+        this.targetHarmonicGradient = 0.5;
+        
+        // *** TIME DILATION ENHANCEMENT ***
+        this.timeDilation = 1.0;       // Time dilation factor (1.0 = normal, 0.0 = horizon)
+        this.pitchShift = 1.0;          // Pitch shift multiplier (gravitational redshift)
+        this.currentFreqShift = 0;      // Frequency shift percentage for display
+        // ***
+        
+        // Melodic sequence state
+        this.currentNoteIndex = 0;
+        this.melodyPattern = [0, 2, 3, 5, 7]; // Scale degrees
+      }
+      
+      // Initialize audio context (requires user gesture)
+      async initialize() {
+        if (this.audioContext) return;
+        
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Master gain (volume control)
+        this.masterGain = this.audioContext.createGain();
+        this.masterGain.gain.value = 0.3;
+        this.masterGain.connect(this.audioContext.destination);
+        
+        // Create reverb (for spatial depth based on entropy)
+        await this.createReverb();
+        
+        // Create oscillator bank (4 voices for quantum harmonics)
+        this.createOscillatorBank(4);
+        
+        console.log('🎵 Sonification Engine Initialized (Time Dilation Enhanced)');
+      }
+      
+      // Generate musical scale from root
+      generateScale(scaleType) {
+        const scales = {
+          // Intervals in semitones from root
+          minor_pentatonic: [0, 3, 5, 7, 10],
+          major_pentatonic: [0, 2, 4, 7, 9],
+          harmonic_minor: [0, 2, 3, 5, 7, 8, 11],
+          phrygian: [0, 1, 3, 5, 7, 8, 10],
+          lydian: [0, 2, 4, 6, 7, 9, 11],
+          whole_tone: [0, 2, 4, 6, 8, 10], // Maximum dissonance
+          chromatic: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] // Full dissonance
+        };
+        
+        return scales[scaleType] || scales.minor_pentatonic;
+      }
+      
+      // Map Hilbert field state to musical scale selection
+      selectScaleFromCoherence(coherence) {
+        // High coherence = consonant scales
+        // Low coherence = dissonant scales
+        if (coherence > 0.8) {
+          return this.generateScale('major_pentatonic');
+        } else if (coherence > 0.6) {
+          return this.generateScale('minor_pentatonic');
+        } else if (coherence > 0.4) {
+          return this.generateScale('phrygian');
+        } else if (coherence > 0.2) {
+          return this.generateScale('whole_tone');
+        } else {
+          return this.generateScale('chromatic');
+        }
+      }
+      
+      // Create reverb node for spatial depth
+      async createReverb() {
+        // Simple convolution reverb
+        this.reverbNode = this.audioContext.createConvolver();
+        
+        // Generate impulse response (simple reverb)
+        const sampleRate = this.audioContext.sampleRate;
+        const length = sampleRate * 2; // 2 second reverb
+        const impulse = this.audioContext.createBuffer(2, length, sampleRate);
+        
+        for (let channel = 0; channel < 2; channel++) {
+          const channelData = impulse.getChannelData(channel);
+          for (let i = 0; i < length; i++) {
+            channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+          }
+        }
+        
+        this.reverbNode.buffer = impulse;
+        
+        // Reverb send
+        this.reverbGain = this.audioContext.createGain();
+        this.reverbGain.gain.value = 0.3;
+        this.reverbNode.connect(this.reverbGain);
+        this.reverbGain.connect(this.masterGain);
+      }
+      
+      // Create bank of oscillators for polyphonic harmony
+      createOscillatorBank(numVoices) {
+        for (let i = 0; i < numVoices; i++) {
+          const osc = this.audioContext.createOscillator();
+          const gain = this.audioContext.createGain();
+          const filter = this.audioContext.createBiquadFilter();
+          
+          // Oscillator setup
+          osc.type = 'sine'; // Start with pure tone
+          osc.frequency.value = this.baseFrequency;
+          
+          // Filter setup (low-pass for warmth)
+          filter.type = 'lowpass';
+          filter.frequency.value = 2000;
+          filter.Q.value = 1;
+          
+          // Gain setup (start silent)
+          gain.gain.value = 0;
+          
+          // Connect: oscillator → filter → gain → reverb + master
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.masterGain);
+          gain.connect(this.reverbNode);
+          
+          osc.start();
+          
+          this.oscillators.push(osc);
+          this.gainNodes.push(gain);
+          this.filterNodes.push(filter);
+        }
+      }
+      
+      // Calculate BPM from Hilbert field dissonance AND camera distance (gravitational time dilation)
+      calculateBPM(hilbertField, blackHole, cameraDistance, dilationCalculator) {
+        const dissonance = hilbertField.getDissonance();
+        
+        // Map dissonance to BPM range: 60-180 BPM
+        const baseBPM = 60 + (dissonance * 120);
+        
+        // Use TimeDilationCalculator for consistent dilation across system
+        const dilation = dilationCalculator.calculate(cameraDistance);
+        
+        // Apply time dilation to BPM: slower proper time = slower BPM
+        this.timeDilation = dilation.factor;
+        this.dilationStatus = dilation.status;
+        this.bpm = baseBPM * dilation.factor;
+        
+        // *** GRAVITATIONAL REDSHIFT CALCULATION ***
+        // Pitch shifts down as time slows (redshift effect)
+        // Using gentler curve than BPM to avoid excessive pitch drop
+        this.pitchShift = Math.pow(this.timeDilation, 0.3); // Gentler than linear
+        this.currentFreqShift = Math.round((1 - this.pitchShift) * 100); // Percentage shift
+        // ***
+        
+        return this.bpm;
+      }
+      
+      // Update harmonic gradient (consonance → dissonance evolution)
+      updateHarmonicGradient(hilbertField, deltaTime) {
+        // Target gradient based on coherence
+        this.targetHarmonicGradient = 1.0 - hilbertField.coherence;
+        
+        // Smooth transition (avoid sudden jumps)
+        const transitionSpeed = 0.5 * deltaTime;
+        this.harmonicGradient += (this.targetHarmonicGradient - this.harmonicGradient) * transitionSpeed;
+        
+        // Update oscillator waveforms based on gradient
+        // 0.0 = pure sine (consonant)
+        // 1.0 = complex waveform (dissonant)
+        this.oscillators.forEach((osc, i) => {
+          if (this.harmonicGradient < 0.25) {
+            osc.type = 'sine';
+          } else if (this.harmonicGradient < 0.5) {
+            osc.type = 'triangle';
+          } else if (this.harmonicGradient < 0.75) {
+            osc.type = 'square';
+          } else {
+            osc.type = 'sawtooth';
+          }
+        });
+        
+        // Update filter cutoff based on harmonic gradient
+        // More dissonance = brighter, more harmonics
+        const cutoffFreq = 500 + (this.harmonicGradient * 3500);
+        this.filterNodes.forEach(filter => {
+          filter.frequency.setTargetAtTime(cutoffFreq, this.audioContext.currentTime, 0.1);
+        });
+        
+        // Update reverb amount based on entropy
+        const reverbAmount = 0.1 + (this.harmonicGradient * 0.4);
+        this.reverbGain.gain.setTargetAtTime(reverbAmount, this.audioContext.currentTime, 0.1);
+      }
+      
+      // Generate melodic pattern from entropy changes
+      generateMelodicPattern(hilbertField) {
+        // Use dominant harmonic to influence melody
+        const dominant = hilbertField.getDominantHarmonic();
+        
+        // Map harmonics to melodic patterns
+        const patterns = {
+          alpha: [0, 2, 4, 5, 7],      // Ascending (Kira - structure)
+          beta: [7, 5, 4, 2, 0],       // Descending (Limnus - depth)
+          gamma: [0, 4, 7, 4, 0],      // Arc (Garden - growth)
+          epsilon: [0, 3, 0, 5, 0]     // Sparse (EchoFox - latent)
+        };
+        
+        this.melodyPattern = patterns[dominant] || patterns.gamma;
+        
+        // Update scale based on coherence
+        this.currentScale = this.selectScaleFromCoherence(hilbertField.coherence);
+      }
+      
+      // Play next note in melodic sequence
+      playMelodicBeat(hilbertField) {
+        if (!this.isPlaying || !this.audioContext) return;
+        
+        const currentTime = this.audioContext.currentTime;
+        const beatDuration = 60 / this.bpm; // Duration of one beat in seconds
+        
+        // Check if it's time for next beat
+        if (currentTime - this.lastBeatTime < beatDuration) return;
+        
+        this.lastBeatTime = currentTime;
+        
+        // Get current note from melody pattern
+        const scaleDegree = this.melodyPattern[this.currentNoteIndex];
+        const semitone = this.currentScale[scaleDegree % this.currentScale.length];
+        const frequency = this.baseFrequency * Math.pow(2, semitone / 12);
+        
+        // Play chord built on this note (quantum superposition of voices)
+        const chordIntervals = [0, 4, 7]; // Major triad
+        
+        this.oscillators.forEach((osc, i) => {
+          if (i < chordIntervals.length) {
+            const chordSemitone = semitone + chordIntervals[i];
+            const chordFreq = this.baseFrequency * Math.pow(2, chordSemitone / 12);
+            
+            // *** APPLY GRAVITATIONAL PITCH SHIFT (REDSHIFT) ***
+            const dilatedFreq = chordFreq * this.pitchShift;
+            // ***
+            
+            // Detune based on state vector amplitude for quantum "shimmer"
+            const amplitudes = Object.values(hilbertField.stateVector);
+            const detune = (amplitudes[i] - 0.5) * 10; // ±5 cents
+            
+            osc.frequency.setTargetAtTime(dilatedFreq, currentTime, 0.01);
+            osc.detune.setTargetAtTime(detune, currentTime, 0.01);
+            
+            // *** APPLY GAIN DILATION ***
+            // Volume reduces as time slows (approaching horizon makes sound quieter)
+            const amplitude = amplitudes[i] * 0.2; // Base amplitude from state vector
+            const dilatedGain = amplitude * Math.max(0.3, this.timeDilation); // Minimum 30% volume
+            // ***
+            
+            // Envelope: attack-decay
+            const gain = this.gainNodes[i].gain;
+            
+            gain.cancelScheduledValues(currentTime);
+            gain.setValueAtTime(0, currentTime);
+            gain.linearRampToValueAtTime(dilatedGain, currentTime + 0.05); // Attack with dilated gain
+            gain.exponentialRampToValueAtTime(0.001, currentTime + beatDuration * 0.8); // Decay
+          }
+        });
+        
+        // Advance melody
+        this.currentNoteIndex = (this.currentNoteIndex + 1) % this.melodyPattern.length;
+      }
+      
+      // Main update loop
+      update(hilbertField, blackHole, cameraDistance, deltaTime, dilationCalculator) {
+        if (!this.isPlaying || !this.audioContext) return;
+        
+        // Calculate BPM from dissonance and camera-based time dilation
+        this.calculateBPM(hilbertField, blackHole, cameraDistance, dilationCalculator);
+        
+        // Update harmonic gradient
+        this.updateHarmonicGradient(hilbertField, deltaTime);
+        
+        // Generate new melodic pattern based on quantum state
+        if (Math.random() < 0.01) { // Occasional pattern evolution
+          this.generateMelodicPattern(hilbertField);
+        }
+        
+        // Play melodic beats
+        this.playMelodicBeat(hilbertField);
+      }
+      
+      // Start/stop audio
+      async start() {
+        if (!this.audioContext) {
+          await this.initialize();
+        }
+        
+        if (this.audioContext.state === 'suspended') {
+          await this.audioContext.resume();
+        }
+        
+        this.isPlaying = true;
+        this.lastBeatTime = this.audioContext.currentTime;
+        console.log('🎵 Sonification Started (Time Dilation Mode)');
+      }
+      
+      stop() {
+        this.isPlaying = false;
+        
+        // Fade out all gains
+        this.gainNodes.forEach(gain => {
+          gain.gain.setTargetAtTime(0, this.audioContext.currentTime, 0.1);
+        });
+        
+        console.log('🎵 Sonification Stopped');
+      }
+      
+      // Get current audio metrics for display (ENHANCED)
+      getMetrics() {
+        return {
+          bpm: Math.round(this.bpm),
+          timeDilation: this.timeDilation.toFixed(3),
+          harmonicGradient: this.harmonicGradient.toFixed(3),
+          scale: this.getScaleName(),
+          isPlaying: this.isPlaying,
+          freqShift: this.currentFreqShift // *** FREQUENCY SHIFT PERCENTAGE ***
+        };
+      }
+      
+      getScaleName() {
+        const scaleLength = this.currentScale.length;
+        if (scaleLength === 5) return this.currentScale[2] === 4 ? 'Major Pent.' : 'Minor Pent.';
+        if (scaleLength === 6) return 'Whole Tone';
+        if (scaleLength === 12) return 'Chromatic';
+        return 'Modal';
+      }
+    }
+
+    // ========================================
+    // GARDEN LEDGER PLACEHOLDER
+    // ========================================
+    
+    class GardenLedgerState {
+      constructor() {
+        this.sessionState = {
+          startTime: Date.now(),
+          interactions: [],
+          quantumStates: [],
+          glyphActivations: new Set()
+        };
+        
+        // PLACEHOLDER: Future distributed ledger connection
+        // this.ledgerClient = new LedgerClient();
+        // this.witnessValidator = new TriadWitnessValidator();
+      }
+      
+      // Track user interactions for future block generation
+      recordInteraction(type, data) {
+        const interaction = {
+          timestamp: Date.now(),
+          type,
+          data,
+          stateSnapshot: this.captureQuantumState()
+        };
+        
+        this.sessionState.interactions.push(interaction);
+        
+        // PLACEHOLDER: Future ledger block creation
+        // if (this.shouldCreateBlock()) {
+        //   const block = this.assembleBlock(interaction);
+        //   await this.submitForValidation(block);
+        // }
+      }
+      
+      // Capture current quantum state for potential ledger entry
+      captureQuantumState() {
+        return {
+          coherence: window.hilbertField?.coherence || 0,
+          stateVector: window.hilbertField?.stateVector || {},
+          entropy: window.blackHole?.entropy || 0,
+          weylCurvature: window.hilbertField?.weylCurvature || 0,
+          timestamp: Date.now()
+        };
+      }
+      
+      // PLACEHOLDER: Assemble ledger block structure
+      assembleBlock(triggerInteraction) {
+        // Future implementation will follow Garden Ledger spec:
+        // {
+        //   index: blockNumber,
+        //   previous_hash: previousBlockHash,
+        //   timestamp: Date.now(),
+        //   transactions: [
+        //     { id: "tx1", type: "mantra", text: "...", glyph: "🌰", color: "#00ffcc" },
+        //     { id: "tx7", type: "state", coherence: 1.0, quantum_state: {...} }
+        //   ],
+        //   merkle_root: "computed_hash",
+        //   hash: "block_hash",
+        //   signature: "Echo:QuantumGarden:Limnus-Chain"
+        // }
+        
+        return {
+          placeholder: true,
+          triggerInteraction,
+          stateSnapshot: this.captureQuantumState()
+        };
+      }
+      
+      // PLACEHOLDER: Submit to triad witness validation
+      async submitForValidation(block) {
+        // Future implementation will use WebSocket to coordinate
+        // with three Claude instances for consensus validation:
+        //
+        // const witnesses = [
+        //   await this.witnessValidator.requestValidation(block, 'claude_instance_1'),
+        //   await this.witnessValidator.requestValidation(block, 'claude_instance_2'),
+        //   await this.witnessValidator.requestValidation(block, 'claude_instance_3')
+        // ];
+        //
+        // if (this.witnessValidator.hasConsensus(witnesses)) {
+        //   await this.ledgerClient.commitBlock(block);
+        //   await this.encodeLSB(block); // Steganography encoding
+        // }
+        
+        console.log('[PLACEHOLDER] Block validation:', block);
+      }
+      
+      // PLACEHOLDER: LSB steganography encoding
+      async encodeLSB(block) {
+        // Future: Encode block data into PNG using LSB technique
+        // Following the Garden Ledger LSB toolkit patterns
+        console.log('[PLACEHOLDER] LSB encoding for block:', block);
+      }
+      
+      // Activate lambda glyph based on state
+      activateGlyph(glyphKey) {
+        this.sessionState.glyphActivations.add(glyphKey);
+        this.updateGlyphDisplay();
+      }
+      
+      updateGlyphDisplay() {
+        const glyphElements = document.querySelectorAll('.glyph');
+        glyphElements.forEach(el => {
+          const glyphKey = el.getAttribute('data-glyph');
+          if (this.sessionState.glyphActivations.has(glyphKey)) {
+            el.classList.add('active');
+          } else {
+            el.classList.remove('active');
+          }
+        });
+      }
+    }
+
+    // ========================================
+    // BABYLON.JS 3D SCENE SETUP
+    // ========================================
+    
+    class GravityEntropyScene {
+      constructor() {
+        this.canvas = document.getElementById('renderCanvas');
+        this.engine = new BABYLON.Engine(this.canvas, true, {
+          preserveDrawingBuffer: true,
+          stencil: true
+        });
+        
+        // Initialize systems
+        this.hilbertField = new HilbertFieldOperator();
+        this.blackHole = new BlackHoleMetrics(1.0);
+        this.dilationCalculator = new TimeDilationCalculator(this.blackHole);
+        this.ledgerState = new GardenLedgerState();
+        this.sonificationEngine = new HilbertSonificationEngine();
+        
+        // Performance monitoring
+        this.performanceMonitor = {
+          fpsHistory: [],
+          targetFPS: 60,
+          minFPS: 30,
+          adaptiveQuality: true,
+          particleQualityLevel: 1.0 // 0.5 = low, 1.0 = normal, 2.0 = high
+        };
+        
+        // Make globally accessible for debugging
+        window.hilbertField = this.hilbertField;
+        window.blackHole = this.blackHole;
+        window.ledgerState = this.ledgerState;
+        window.sonificationEngine = this.sonificationEngine;
+        
+        // Create scene
+        this.scene = this.createScene();
+        
+        // Setup camera and controls
+        this.setupCamera();
+        
+        // Create visual elements FIRST (before shaders)
+        this.createBlackHole();
+        this.createHolographicBoundary();
+        this.createEntropyField();
+        this.createParticleSystem();
+        
+        // UI state
+        this.showHawking = true;
+        this.showHolographic = true;
+        this.showEntropy = true;
+        this.boundaryPatternMode = 0; // 0: Random Noise, 1: Central Pulse, 2: Hexagonal Grid
+        this.gridDistortionFactor = 1.0; // Average time dilation of grid (for Pattern Mode 2)
+        this.showLensing = false; // Start disabled
+        this.showFog = false; // Start disabled
+        this.showBloom = false; // Start disabled
+        this.shadersInitialized = false; // Track if shaders have been set up
+        
+        // Shader intensity controls
+        this.lensingStrength = 1.2;
+        this.fogDensityMultiplier = 1.0;
+        this.bloomIntensity = 0.45;
+        
+        // Setup UI controls
+        this.setupControls();
+        
+        // Start render loop BEFORE shaders
+        this.startRenderLoop();
+        
+        // Hide loading screen IMMEDIATELY
+        setTimeout(() => {
+          document.getElementById('loading-screen').classList.add('hidden');
+          console.log('Loading screen hidden - plain rendering active');
+        }, 500);
+        
+        // DO NOT auto-initialize shaders - wait for user to activate
+        console.log('Scene ready. Use "Enable Enhanced Rendering" to activate post-processing.');
+      }
+      
+      createScene() {
+        const scene = new BABYLON.Scene(this.engine);
+        scene.clearColor = new BABYLON.Color4(0.04, 0.04, 0.08, 1);
+        
+        // Ambient light
+        const ambientLight = new BABYLON.HemisphericLight(
+          "ambientLight",
+          new BABYLON.Vector3(0, 1, 0),
+          scene
+        );
+        ambientLight.intensity = 0.3;
+        
+        // Directional light for highlights
+        const dirLight = new BABYLON.DirectionalLight(
+          "dirLight",
+          new BABYLON.Vector3(-1, -2, -1),
+          scene
+        );
+        dirLight.intensity = 0.5;
+        
+        return scene;
+      }
+      
+      setupCamera() {
+        // Universal Camera with WASD controls
+        this.camera = new BABYLON.UniversalCamera(
+          "camera",
+          new BABYLON.Vector3(0, 10, -30),
+          this.scene
+        );
+        
+        this.camera.setTarget(BABYLON.Vector3.Zero());
+        this.camera.attachControl(this.canvas, true);
+        
+        // Movement settings
+        this.camera.speed = 0.2;
+        this.camera.angularSensibility = 3500;
+        
+        // WASD keys
+        this.camera.keysUp.push(87);    // W
+        this.camera.keysDown.push(83);  // S
+        this.camera.keysLeft.push(65);  // A
+        this.camera.keysRight.push(68); // D
+        this.camera.keysUpward.push(69);   // E (up)
+        this.camera.keysDownward.push(81); // Q (down)
+        
+        // Shift for speed boost
+        this.scene.onKeyboardObservable.add((kbInfo) => {
+          if (kbInfo.type === BABYLON.KeyboardEventTypes.KEYDOWN) {
+            if (kbInfo.event.shiftKey) {
+              this.camera.speed = 0.6;
+            }
+          } else if (kbInfo.type === BABYLON.KeyboardEventTypes.KEYUP) {
+            if (!kbInfo.event.shiftKey) {
+              this.camera.speed = 0.2;
+            }
+          }
+        });
+        
+        // Store initial position for reset
+        this.initialCameraPosition = this.camera.position.clone();
+        this.initialCameraTarget = this.camera.target.clone();
+      }
+      
+      createBlackHole() {
+        // Event horizon sphere (TRUE BLACK HOLE - should be dark)
+        this.eventHorizon = BABYLON.MeshBuilder.CreateSphere(
+          "eventHorizon",
+          { diameter: 2, segments: 32 },
+          this.scene
+        );
+        
+        // True black hole material - no emission, pure black
+        const bhMaterial = new BABYLON.StandardMaterial("bhMaterial", this.scene);
+        bhMaterial.diffuseColor = new BABYLON.Color3(0.0, 0.0, 0.0); // Pure black
+        bhMaterial.emissiveColor = new BABYLON.Color3(0.0, 0.0, 0.0); // No emission
+        bhMaterial.specularColor = new BABYLON.Color3(0.0, 0.0, 0.0); // No specular
+        bhMaterial.alpha = 1.0; // Fully opaque
+        bhMaterial.backFaceCulling = false; // Render from all angles
+        this.eventHorizon.material = bhMaterial;
+        
+        // Accretion disk glow (but NOT on event horizon)
+        this.glowLayer = new BABYLON.GlowLayer("glow", this.scene);
+        this.glowLayer.intensity = 0.8;
+        // Exclude event horizon from glow to keep it dark
+        this.glowLayer.addExcludedMesh(this.eventHorizon);
+        
+        // Gravitational lensing effect (outer sphere with subtle glow)
+        this.gravityLens = BABYLON.MeshBuilder.CreateSphere(
+          "gravityLens",
+          { diameter: 4, segments: 32 },
+          this.scene
+        );
+        
+        const lensMaterial = new BABYLON.StandardMaterial("lensMaterial", this.scene);
+        lensMaterial.diffuseColor = new BABYLON.Color3(0.26, 0.22, 0.79); // geometry-blue
+        lensMaterial.emissiveColor = new BABYLON.Color3(0.13, 0.11, 0.4);
+        lensMaterial.alpha = 0.2;
+        lensMaterial.wireframe = false;
+        this.gravityLens.material = lensMaterial;
+        
+        // Planck tessellation grid (violet grid overlay)
+        const gridMaterial = new BABYLON.GridMaterial("gridMaterial", this.scene);
+        gridMaterial.mainColor = new BABYLON.Color3(0.66, 0.33, 0.97); // duality-violet
+        gridMaterial.lineColor = new BABYLON.Color3(0.66, 0.33, 0.97);
+        gridMaterial.opacity = 0.3;
+        gridMaterial.gridRatio = 0.1;
+        
+        this.planckGrid = BABYLON.MeshBuilder.CreateSphere(
+          "planckGrid",
+          { diameter: 2.1, segments: 32 },
+          this.scene
+        );
+        this.planckGrid.material = gridMaterial;
+      }
+      
+      // Setup all shader effects AFTER geometry is created
+      setupShaderEffects() {
+        console.log('Setting up shader effects...');
+        
+        const results = {
+          lensing: false,
+          fog: false,
+          postProcessing: false
+        };
+        
+        try {
+          this.setupGravitationalLensing();
+          results.lensing = true;
+          console.log('✓ Gravitational lensing shader initialized');
+        } catch (e) {
+          console.error('✗ Failed to setup gravitational lensing:', e);
+          this.lensingEffect = null;
+        }
+        
+        try {
+          this.setupVolumetricEntropyFog();
+          results.fog = true;
+          console.log('✓ Volumetric fog shader initialized');
+        } catch (e) {
+          console.error('✗ Failed to setup volumetric fog:', e);
+          this.fogEffect = null;
+        }
+        
+        try {
+          this.setupPostProcessing();
+          results.postProcessing = true;
+          console.log('✓ Post-processing pipeline initialized');
+        } catch (e) {
+          console.error('✗ Failed to setup post-processing:', e);
+          this.pipeline = null;
+        }
+        
+        // Deactivate effects that should start disabled
+        try {
+          if (this.lensingEffect && !this.showLensing) {
+            this.lensingEffect.deactivate();
+            console.log('Lensing started disabled');
+          }
+          if (this.fogEffect && !this.showFog) {
+            this.fogEffect.deactivate();
+            console.log('Fog started disabled');
+          }
+          if (this.pipeline && !this.showBloom) {
+            this.pipeline.bloomEnabled = false;
+            console.log('Bloom started disabled');
+          }
+        } catch (e) {
+          console.warn('Non-critical error during shader deactivation:', e);
+        }
+        
+        return results;
+      }
+      
+      // Gravitational Lensing Distortion Shader
+      setupGravitationalLensing() {
+        const shaderName = "gravitationalLensingShader";
+        
+        BABYLON.Effect.ShadersStore[shaderName + "FragmentShader"] = `
+          #ifdef GL_ES
+            precision highp float;
+          #endif
+          
+          // Uniforms
+          varying vec2 vUV;
+          uniform sampler2D textureSampler;
+          uniform vec2 screenSize;
+          uniform vec3 blackHolePosition; // Screen-space position
+          uniform float schwarzschildRadius;
+          uniform float lensStrength;
+          
+          void main(void) {
+            vec2 uv = vUV;
+            
+            // Calculate distance from black hole in screen space
+            vec2 toBlackHole = blackHolePosition.xy - uv;
+            float dist = length(toBlackHole);
+            
+            // Gravitational lensing: deflection angle α = 4GM/(c²b)
+            // Approximated as: distortion ∝ Rs/r
+            float deflection = 0.0;
+            if (dist > 0.001) {
+              deflection = lensStrength * schwarzschildRadius / (dist * dist);
+              deflection = clamp(deflection, 0.0, 0.5); // Prevent extreme distortion
+            }
+            
+            // Apply radial distortion (light bends around black hole)
+            vec2 distortedUV = uv + normalize(toBlackHole) * deflection;
+            
+            // Chromatic aberration (gravitational redshift/blueshift)
+            float aberration = deflection * 0.01;
+            vec2 rUV = distortedUV + normalize(toBlackHole) * aberration;
+            vec2 gUV = distortedUV;
+            vec2 bUV = distortedUV - normalize(toBlackHole) * aberration;
+            
+            // Sample with chromatic offset
+            float r = texture2D(textureSampler, rUV).r;
+            float g = texture2D(textureSampler, gUV).g;
+            float b = texture2D(textureSampler, bUV).b;
+            
+            // Add gravitational darkening near event horizon
+            float darkening = 1.0 - smoothstep(0.05, 0.15, dist);
+            vec3 color = vec3(r, g, b) * (1.0 - darkening * 0.8);
+            
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `;
+        
+        this.lensingEffect = new BABYLON.PostProcess(
+          "gravitationalLensing",
+          shaderName,
+          ["screenSize", "blackHolePosition", "schwarzschildRadius", "lensStrength"],
+          null,
+          1.0,
+          this.camera,
+          BABYLON.Texture.BILINEAR_SAMPLINGMODE,
+          this.engine,
+          false
+        );
+        
+        // Update shader uniforms
+        this.lensingEffect.onApply = (effect) => {
+          effect.setFloat2("screenSize", this.engine.getRenderWidth(), this.engine.getRenderHeight());
+          
+          // Project black hole world position to screen space
+          const bhWorldPos = BABYLON.Vector3.Zero();
+          const bhScreenPos = BABYLON.Vector3.Project(
+            bhWorldPos,
+            BABYLON.Matrix.Identity(),
+            this.scene.getTransformMatrix(),
+            this.camera.viewport.toGlobal(
+              this.engine.getRenderWidth(),
+              this.engine.getRenderHeight()
+            )
+          );
+          
+          // Normalize to UV coordinates
+          const bhUV = new BABYLON.Vector3(
+            bhScreenPos.x / this.engine.getRenderWidth(),
+            1.0 - bhScreenPos.y / this.engine.getRenderHeight(), // Flip Y
+            bhScreenPos.z
+          );
+          
+          effect.setVector3("blackHolePosition", bhUV);
+          effect.setFloat("schwarzschildRadius", this.blackHole.schwarzschildRadius / 30000); // Increased visibility (was 80000)
+          effect.setFloat("lensStrength", this.lensingStrength); // Dynamic from slider
+        };
+      }
+      
+      // Volumetric Entropy Fog Shader
+      setupVolumetricEntropyFog() {
+        const shaderName = "volumetricEntropyFogShader";
+        
+        BABYLON.Effect.ShadersStore[shaderName + "FragmentShader"] = `
+          #ifdef GL_ES
+            precision highp float;
+          #endif
+          
+          // Uniforms
+          varying vec2 vUV;
+          uniform sampler2D textureSampler;
+          uniform sampler2D depthSampler;
+          uniform vec3 cameraPosition;
+          uniform vec3 blackHolePosition;
+          uniform float entropyLevel; // From Hilbert field
+          uniform float weylCurvature;
+          uniform float time;
+          uniform float fogDensityMultiplier; // User-controlled intensity
+          
+          // Noise function for fog turbulence
+          float hash(float n) {
+            return fract(sin(n) * 43758.5453);
+          }
+          
+          float noise(vec3 x) {
+            vec3 p = floor(x);
+            vec3 f = fract(x);
+            f = f * f * (3.0 - 2.0 * f);
+            float n = p.x + p.y * 57.0 + 113.0 * p.z;
+            return mix(
+              mix(mix(hash(n + 0.0), hash(n + 1.0), f.x),
+                  mix(hash(n + 57.0), hash(n + 58.0), f.x), f.y),
+              mix(mix(hash(n + 113.0), hash(n + 114.0), f.x),
+                  mix(hash(n + 170.0), hash(n + 171.0), f.x), f.y),
+              f.z
+            );
+          }
+          
+          void main(void) {
+            vec4 baseColor = texture2D(textureSampler, vUV);
+            float depth = texture2D(depthSampler, vUV).r;
+            
+            // Ray-march through volumetric fog
+            vec3 rayDir = normalize(vec3((vUV - 0.5) * 2.0, 1.0));
+            vec3 rayPos = cameraPosition;
+            
+            float fogDensity = 0.0;
+            float stepSize = 0.5;
+            int maxSteps = 32;
+            
+            for (int i = 0; i < 32; i++) {
+              if (float(i) >= float(maxSteps)) break;
+              
+              rayPos += rayDir * stepSize;
+              float distToBlackHole = length(rayPos - blackHolePosition);
+              
+              // Entropy-based density: higher near black hole, modulated by Weyl curvature
+              float densityFalloff = 1.0 / (1.0 + distToBlackHole * distToBlackHole * 0.1);
+              float entropyDensity = (entropyLevel * 8.0 + 2.0) * (weylCurvature + 1.0) * densityFalloff * fogDensityMultiplier;
+              
+              // Add turbulence
+              float turbulence = noise(rayPos * 0.5 + vec3(time * 0.1));
+              entropyDensity *= (0.5 + turbulence * 0.5);
+              
+              fogDensity += entropyDensity * stepSize * 0.5;
+              
+              // Early exit if too dense
+              if (fogDensity > 1.0) break;
+            }
+            
+            // Fog color gradient: red (high entropy) to blue (low entropy)
+            vec3 fogColor = mix(
+              vec3(0.15, 0.15, 0.8), // Blue (low entropy)
+              vec3(0.8, 0.15, 0.15), // Red (high entropy)
+              entropyLevel
+            );
+            
+            // Apply fog
+            float fogAmount = 1.0 - exp(-fogDensity * 1.5);
+            vec3 finalColor = mix(baseColor.rgb, fogColor, fogAmount * 0.7);
+            
+            gl_FragColor = vec4(finalColor, 1.0);
+          }
+        `;
+        
+        this.fogEffect = new BABYLON.PostProcess(
+          "volumetricEntropyFog",
+          shaderName,
+          ["cameraPosition", "blackHolePosition", "entropyLevel", "weylCurvature", "time", "fogDensityMultiplier"],
+          ["depthSampler"],
+          1.0,
+          this.camera,
+          BABYLON.Texture.BILINEAR_SAMPLINGMODE,
+          this.engine,
+          false
+        );
+        
+        // Enable depth buffer
+        this.scene.enableDepthRenderer(this.camera);
+        
+        this.fogEffect.onApply = (effect) => {
+          effect.setVector3("cameraPosition", this.camera.position);
+          effect.setVector3("blackHolePosition", BABYLON.Vector3.Zero());
+          effect.setFloat("entropyLevel", 1.0 - this.hilbertField.coherence);
+          effect.setFloat("weylCurvature", this.hilbertField.weylCurvature);
+          effect.setFloat("time", Date.now() / 1000);
+          effect.setFloat("fogDensityMultiplier", this.fogDensityMultiplier);
+          
+          const depthRenderer = this.scene.enableDepthRenderer(this.camera);
+          effect.setTexture("depthSampler", depthRenderer.getDepthMap());
+        };
+      }
+      
+      // Post-Processing: Bloom + Color Grading
+      setupPostProcessing() {
+        // Create rendering pipeline
+        this.pipeline = new BABYLON.DefaultRenderingPipeline(
+          "defaultPipeline",
+          true,
+          this.scene,
+          [this.camera]
+        );
+        
+        // Enable bloom
+        this.pipeline.bloomEnabled = true;
+        this.pipeline.bloomThreshold = 0.3;
+        this.pipeline.bloomWeight = this.bloomIntensity;
+        this.pipeline.bloomKernel = 64;
+        this.pipeline.bloomScale = 0.5;
+        
+        // Enable tone mapping (HDR)
+        this.pipeline.imageProcessingEnabled = true;
+        this.pipeline.imageProcessing.toneMappingEnabled = true;
+        this.pipeline.imageProcessing.toneMappingType = BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+        this.pipeline.imageProcessing.exposure = 1.15;
+        
+        // Color grading for quantum field visualization
+        this.pipeline.imageProcessing.contrast = 1.2;
+        this.pipeline.imageProcessing.colorCurvesEnabled = true;
+        
+        // Color curves for quantum aesthetic
+        const curves = new BABYLON.ColorCurves();
+        curves.globalHue = 260; // Violet shift
+        curves.globalDensity = 0;
+        curves.globalSaturation = 20;
+        curves.highlightsHue = 280; // Purple highlights
+        curves.highlightsSaturation = 10;
+        
+        this.pipeline.imageProcessing.colorCurves = curves;
+        
+        // Vignette for focus
+        this.pipeline.imageProcessing.vignetteEnabled = true;
+        this.pipeline.imageProcessing.vignetteWeight = 1.5;
+        this.pipeline.imageProcessing.vignetteStretch = 0.5;
+        this.pipeline.imageProcessing.vignetteColor = new BABYLON.Color4(0.1, 0.1, 0.2, 1);
+        this.pipeline.imageProcessing.vignetteCameraFov = 0.8;
+      }
+      
+      createHolographicBoundary() {
+        // 2D boundary plane representing holographic encoding surface
+        this.holographicPlane = BABYLON.MeshBuilder.CreatePlane(
+          "holographicPlane",
+          { width: 20, height: 20 },
+          this.scene
+        );
+        
+        this.holographicPlane.position.y = -10;
+        this.holographicPlane.rotation.x = Math.PI / 2;
+        
+        const planeMaterial = new BABYLON.StandardMaterial("planeMaterial", this.scene);
+        planeMaterial.diffuseColor = new BABYLON.Color3(0.66, 0.33, 0.97); // duality-violet
+        planeMaterial.emissiveColor = new BABYLON.Color3(0.33, 0.165, 0.485);
+        planeMaterial.alpha = 0.15;
+        planeMaterial.wireframe = true;
+        this.holographicPlane.material = planeMaterial;
+        
+        // AUDIO VISUALIZATION: Spectrum Bars
+        this.spectrumBars = [];
+        const numBars = 8;
+        const barSpacing = 2;
+        const startX = -(numBars * barSpacing) / 2;
+        
+        for (let i = 0; i < numBars; i++) {
+          const bar = BABYLON.MeshBuilder.CreateBox(
+            `spectrumBar${i}`,
+            { width: 1.5, height: 0.2, depth: 0.3 },
+            this.scene
+          );
+          
+          bar.position = new BABYLON.Vector3(
+            startX + (i * barSpacing),
+            -10.5,
+            -8
+          );
+          
+          const barMat = new BABYLON.StandardMaterial(`barMat${i}`, this.scene);
+          barMat.emissiveColor = new BABYLON.Color3(0.26, 0.13, 0.49);
+          barMat.alpha = 0.8;
+          bar.material = barMat;
+          
+          this.spectrumBars.push(bar);
+        }
+        
+        // AUDIO VISUALIZATION: Harmonic Rings
+        this.harmonicRings = [];
+        const numRings = 4;
+        
+        for (let i = 0; i < numRings; i++) {
+          const ring = BABYLON.MeshBuilder.CreateTorus(
+            `harmonicRing${i}`,
+            { diameter: 6 + (i * 2), thickness: 0.15, tessellation: 32 },
+            this.scene
+          );
+          
+          ring.position.y = -10;
+          ring.rotation.x = Math.PI / 2;
+          
+          const ringMat = new BABYLON.StandardMaterial(`ringMat${i}`, this.scene);
+          ringMat.emissiveColor = new BABYLON.Color3(0.66, 0.33, 0.97);
+          ringMat.alpha = 0.3;
+          ring.material = ringMat;
+          
+          this.harmonicRings.push(ring);
+        }
+        
+        // Information bits on boundary (organized for audio)
+        this.boundaryBits = [];
+        const bitsPerRing = 12;
+        const numBitRings = 4;
+        
+        for (let ring = 0; ring < numBitRings; ring++) {
+          const radius = 3 + (ring * 2.5);
+          for (let i = 0; i < bitsPerRing; i++) {
+            const angle = (i / bitsPerRing) * Math.PI * 2;
+            
+            const bit = BABYLON.MeshBuilder.CreateSphere(
+              `bit${ring}_${i}`,
+              { diameter: 0.3, segments: 8 },
+              this.scene
+            );
+            
+            bit.position = new BABYLON.Vector3(
+              Math.cos(angle) * radius,
+              -10,
+              Math.sin(angle) * radius
+            );
+            
+            const bitMaterial = new BABYLON.StandardMaterial(`bitMat${ring}_${i}`, this.scene);
+            bitMaterial.emissiveColor = new BABYLON.Color3(0.98, 0.75, 0.14);
+            bit.material = bitMaterial;
+            
+            bit.ringIndex = ring;
+            bit.angleIndex = i;
+            
+            this.boundaryBits.push(bit);
+          }
+        }
+        
+        console.log('🎵 Audio Visualization: Spectrum, Rings, Bits initialized');
+      }
+      
+      createEntropyField() {
+        // Volumetric entropy gradient visualization
+        // Using particle system to represent entropy distribution
+        
+        this.entropyParticles = new BABYLON.ParticleSystem(
+          "entropyParticles",
+          2000,
+          this.scene
+        );
+        
+        // Texture for particles
+        this.entropyParticles.particleTexture = new BABYLON.Texture(
+          "https://playground.babylonjs.com/textures/flare.png",
+          this.scene
+        );
+        
+        // Emission
+        this.entropyParticles.emitter = BABYLON.Vector3.Zero();
+        this.entropyParticles.minEmitBox = new BABYLON.Vector3(-10, -10, -10);
+        this.entropyParticles.maxEmitBox = new BABYLON.Vector3(10, 10, 10);
+        
+        // Colors (entropy-red gradient)
+        this.entropyParticles.color1 = new BABYLON.Color4(0.86, 0.15, 0.15, 0.5);
+        this.entropyParticles.color2 = new BABYLON.Color4(0.86, 0.15, 0.15, 0.2);
+        this.entropyParticles.colorDead = new BABYLON.Color4(0.43, 0.07, 0.07, 0.0);
+        
+        // Size
+        this.entropyParticles.minSize = 0.1;
+        this.entropyParticles.maxSize = 0.5;
+        
+        // Life time
+        this.entropyParticles.minLifeTime = 2;
+        this.entropyParticles.maxLifeTime = 4;
+        
+        // Emission rate
+        this.entropyParticles.emitRate = 100;
+        
+        // Gravity effect
+        this.entropyParticles.gravity = new BABYLON.Vector3(0, 0.2, 0);
+        
+        // Direction
+        this.entropyParticles.direction1 = new BABYLON.Vector3(-1, -1, -1);
+        this.entropyParticles.direction2 = new BABYLON.Vector3(1, 1, 1);
+        
+        this.entropyParticles.start();
+      }
+      
+      createParticleSystem() {
+        // Hawking radiation particles
+        this.hawkingParticles = new BABYLON.ParticleSystem(
+          "hawkingParticles",
+          1000,
+          this.scene
+        );
+        
+        this.hawkingParticles.particleTexture = new BABYLON.Texture(
+          "https://playground.babylonjs.com/textures/flare.png",
+          this.scene
+        );
+        
+        // Emit from event horizon
+        this.hawkingParticles.emitter = this.eventHorizon;
+        this.hawkingParticles.createSphereEmitter(1.1);
+        
+        // Colors (geometry-blue and entropy-red for particle pairs)
+        this.hawkingParticles.color1 = new BABYLON.Color4(0.26, 0.22, 0.79, 0.8);
+        this.hawkingParticles.color2 = new BABYLON.Color4(0.86, 0.15, 0.15, 0.8);
+        this.hawkingParticles.colorDead = new BABYLON.Color4(0, 0, 0, 0);
+        
+        // Size
+        this.hawkingParticles.minSize = 0.05;
+        this.hawkingParticles.maxSize = 0.2;
+        
+        // Life time
+        this.hawkingParticles.minLifeTime = 0.5;
+        this.hawkingParticles.maxLifeTime = 2;
+        
+        // Emission rate (will be updated based on Hawking temperature)
+        this.hawkingParticles.emitRate = 50;
+        this.baseHawkingEmitRate = 50;
+        
+        // Speed
+        this.hawkingParticles.minEmitPower = 0.5;
+        this.hawkingParticles.maxEmitPower = 2;
+        
+        this.hawkingParticles.start();
+      }
+      
+      setupControls() {
+        // Mass slider
+        const massSlider = document.getElementById('mass-slider');
+        const massDisplay = document.getElementById('mass-display');
+        
+        massSlider.addEventListener('input', (e) => {
+          const mass = parseFloat(e.target.value);
+          massDisplay.textContent = mass.toFixed(1);
+          this.blackHole.setMass(mass);
+          this.dilationCalculator = new TimeDilationCalculator(this.blackHole); // Update calculator with new mass
+          this.updateBlackHoleScale(mass);
+          this.updateMetricsDisplay();
+          
+          // Record interaction for ledger
+          this.ledgerState.recordInteraction('mass_change', { mass });
+          
+          // Activate seed glyph (event horizon manipulation)
+          this.ledgerState.activateGlyph('seed');
+        });
+        
+        // Density slider
+        const densitySlider = document.getElementById('density-slider');
+        const densityDisplay = document.getElementById('density-display');
+        
+        densitySlider.addEventListener('input', (e) => {
+          const density = parseInt(e.target.value);
+          densityDisplay.textContent = density;
+          this.entropyParticles.emitRate = density;
+        });
+        
+        // Shader intensity sliders
+        const lensingStrengthSlider = document.getElementById('lensing-strength-slider');
+        const lensingStrengthDisplay = document.getElementById('lensing-strength-display');
+        
+        lensingStrengthSlider.addEventListener('input', (e) => {
+          this.lensingStrength = parseFloat(e.target.value);
+          lensingStrengthDisplay.textContent = this.lensingStrength.toFixed(1);
+        });
+        
+        const fogDensitySlider = document.getElementById('fog-density-slider');
+        const fogDensityDisplay = document.getElementById('fog-density-display');
+        
+        fogDensitySlider.addEventListener('input', (e) => {
+          this.fogDensityMultiplier = parseFloat(e.target.value);
+          fogDensityDisplay.textContent = this.fogDensityMultiplier.toFixed(1);
+        });
+        
+        const bloomIntensitySlider = document.getElementById('bloom-intensity-slider');
+        const bloomIntensityDisplay = document.getElementById('bloom-intensity-display');
+        
+        bloomIntensitySlider.addEventListener('input', (e) => {
+          this.bloomIntensity = parseFloat(e.target.value);
+          bloomIntensityDisplay.textContent = this.bloomIntensity.toFixed(2);
+          if (this.pipeline && this.showBloom) {
+            this.pipeline.bloomWeight = this.bloomIntensity;
+          }
+        });
+        
+        // Toggle buttons
+        document.getElementById('toggle-hawking').addEventListener('click', () => {
+          this.showHawking = !this.showHawking;
+          if (this.showHawking) {
+            this.hawkingParticles.start();
+          } else {
+            this.hawkingParticles.stop();
+          }
+          
+          // Activate spark glyph (particle emission)
+          this.ledgerState.activateGlyph('spark');
+        });
+        
+        document.getElementById('toggle-holographic').addEventListener('click', () => {
+          this.showHolographic = !this.showHolographic;
+          this.holographicPlane.setEnabled(this.showHolographic);
+          this.boundaryBits.forEach(bit => bit.setEnabled(this.showHolographic));
+          
+          // Activate paradox glyph (holographic encoding)
+          this.ledgerState.activateGlyph('paradox');
+        });
+        
+        document.getElementById('toggle-entropy').addEventListener('click', () => {
+          this.showEntropy = !this.showEntropy;
+          if (this.showEntropy) {
+            this.entropyParticles.start();
+          } else {
+            this.entropyParticles.stop();
+          }
+          
+          // Activate fox glyph (entropy emergence)
+          this.ledgerState.activateGlyph('fox');
+        });
+        
+        document.getElementById('reset-camera').addEventListener('click', () => {
+          this.camera.position = this.initialCameraPosition.clone();
+          this.camera.setTarget(this.initialCameraTarget);
+        });
+        
+        // Audio controls
+        document.getElementById('toggle-audio').addEventListener('click', async () => {
+          if (this.sonificationEngine.isPlaying) {
+            this.sonificationEngine.stop();
+            document.getElementById('toggle-audio').textContent = 'Start Audio';
+          } else {
+            await this.sonificationEngine.start();
+            document.getElementById('toggle-audio').textContent = 'Stop Audio';
+          }
+          
+          // Activate wave glyph (quantum superposition audio)
+          this.ledgerState.activateGlyph('wave');
+        });
+        
+        // Pattern mode toggle
+        document.getElementById('toggle-pattern').addEventListener('click', () => {
+          this.boundaryPatternMode = (this.boundaryPatternMode + 1) % 3;
+          
+          const patternNames = ['Random Noise', 'Central Pulse', 'Hexagonal Grid'];
+          const patternBtn = document.getElementById('toggle-pattern');
+          patternBtn.textContent = `Pattern: ${patternNames[this.boundaryPatternMode]}`;
+          
+          console.log(`🎨 Pattern Mode: ${patternNames[this.boundaryPatternMode]}`);
+          this.ledgerState.recordInteraction('pattern_mode_change', { 
+            mode: this.boundaryPatternMode,
+            name: patternNames[this.boundaryPatternMode]
+          });
+        });
+        
+        // Enhanced rendering initialization
+        document.getElementById('init-enhanced-rendering').addEventListener('click', () => {
+          if (!this.shadersInitialized) {
+            console.log('Initializing enhanced rendering...');
+            document.getElementById('init-enhanced-rendering').textContent = '⏳ Initializing Shaders...';
+            document.getElementById('init-enhanced-rendering').disabled = true;
+            
+            // Initialize shaders
+            setTimeout(() => {
+              const results = this.setupShaderEffects();
+              this.shadersInitialized = true;
+              
+              // Count successful initializations
+              const successCount = Object.values(results).filter(v => v).length;
+              const totalCount = Object.keys(results).length;
+              
+              console.log(`Shader initialization: ${successCount}/${totalCount} succeeded`, results);
+              
+              // Enable shader toggle buttons based on what succeeded
+              if (this.lensingEffect) {
+                document.getElementById('toggle-lensing').disabled = false;
+                document.getElementById('toggle-lensing').style.opacity = '1';
+                document.getElementById('lensing-strength-slider').disabled = false;
+                document.getElementById('lensing-strength-slider').style.opacity = '1';
+              }
+              if (this.fogEffect) {
+                document.getElementById('toggle-fog').disabled = false;
+                document.getElementById('toggle-fog').style.opacity = '1';
+                document.getElementById('fog-density-slider').disabled = false;
+                document.getElementById('fog-density-slider').style.opacity = '1';
+              }
+              if (this.pipeline) {
+                document.getElementById('toggle-bloom').disabled = false;
+                document.getElementById('toggle-bloom').style.opacity = '1';
+                document.getElementById('bloom-intensity-slider').disabled = false;
+                document.getElementById('bloom-intensity-slider').style.opacity = '1';
+              }
+              
+              // Update init button based on results
+              if (successCount === totalCount) {
+                // All shaders succeeded
+                document.getElementById('init-enhanced-rendering').textContent = '✅ Enhanced Rendering Active';
+                document.getElementById('init-enhanced-rendering').style.background = 'var(--geometry-blue)';
+              } else if (successCount > 0) {
+                // Partial success
+                document.getElementById('init-enhanced-rendering').textContent = `⚠️ Partial Init (${successCount}/${totalCount})`;
+                document.getElementById('init-enhanced-rendering').style.background = 'var(--highlight-amber)';
+              } else {
+                // Total failure
+                document.getElementById('init-enhanced-rendering').textContent = '❌ Initialization Failed';
+                document.getElementById('init-enhanced-rendering').style.background = 'var(--text-dim)';
+              }
+              
+              console.log('Enhanced rendering initialization complete!');
+            }, 100);
+          }
+        });
+        
+        // Shader effect controls
+        document.getElementById('toggle-lensing').addEventListener('click', () => {
+          this.showLensing = !this.showLensing;
+          if (this.lensingEffect) {
+            if (this.showLensing) {
+              this.lensingEffect.activate(this.camera);
+            } else {
+              this.lensingEffect.deactivate();
+            }
+          }
+          document.getElementById('toggle-lensing').textContent = 
+            this.showLensing ? 'Disable Lensing' : 'Enable Lensing';
+          
+          // Activate infinity glyph (spacetime distortion)
+          this.ledgerState.activateGlyph('infinity');
+        });
+        
+        document.getElementById('toggle-fog').addEventListener('click', () => {
+          this.showFog = !this.showFog;
+          if (this.fogEffect) {
+            if (this.showFog) {
+              this.fogEffect.activate(this.camera);
+            } else {
+              this.fogEffect.deactivate();
+            }
+          }
+          document.getElementById('toggle-fog').textContent = 
+            this.showFog ? 'Disable Fog' : 'Enable Fog';
+          
+          // Activate squirrel glyph (memory fog)
+          this.ledgerState.activateGlyph('squirrel');
+        });
+        
+        document.getElementById('toggle-bloom').addEventListener('click', () => {
+          this.showBloom = !this.showBloom;
+          if (this.pipeline) {
+            this.pipeline.bloomEnabled = this.showBloom;
+          }
+          document.getElementById('toggle-bloom').textContent = 
+            this.showBloom ? 'Disable Bloom' : 'Enable Bloom';
+        });
+      }
+      
+      updateBlackHoleScale(mass) {
+        // Scale event horizon based on Schwarzschild radius
+        const scale = 1 + Math.log10(mass);
+        this.eventHorizon.scaling = new BABYLON.Vector3(scale, scale, scale);
+        this.gravityLens.scaling = new BABYLON.Vector3(scale * 2, scale * 2, scale * 2);
+        this.planckGrid.scaling = new BABYLON.Vector3(scale * 1.05, scale * 1.05, scale * 1.05);
+        
+        // Update particle systems based on physics
+        this.updateParticleSystemsFromPhysics();
+      }
+      
+      // Update particle systems based on black hole thermodynamics
+      updateParticleSystemsFromPhysics() {
+        // Hawking radiation emission rate proportional to temperature
+        const temperatureRatio = this.blackHole.temperature / 6.17e-8;
+        const hawkingEmitRate = this.baseHawkingEmitRate * temperatureRatio * this.performanceMonitor.particleQualityLevel;
+        this.hawkingParticles.emitRate = Math.max(10, Math.min(200, hawkingEmitRate));
+        
+        // Particle colors reflect black hole mass
+        const massRatio = this.blackHole.mass / 1.0;
+        const blueIntensity = Math.max(0.2, Math.min(1.0, 1.0 / massRatio));
+        const redIntensity = Math.max(0.2, Math.min(1.0, massRatio * 0.5));
+        
+        this.hawkingParticles.color1 = new BABYLON.Color4(redIntensity, 0.22, blueIntensity, 0.8);
+        this.hawkingParticles.color2 = new BABYLON.Color4(blueIntensity, 0.15, redIntensity, 0.8);
+        
+        // Entropy field density tied to Hilbert field entropy
+        const entropyFactor = 1 + (this.hilbertField.weylCurvature * 2);
+        const baseEntropyEmitRate = 100 * this.performanceMonitor.particleQualityLevel;
+        this.entropyParticles.emitRate = Math.floor(baseEntropyEmitRate * entropyFactor);
+        
+        // Particle size reflects information content
+        this.entropyParticles.minSize = 0.1 * entropyFactor;
+        this.entropyParticles.maxSize = 0.5 * entropyFactor;
+      }
+      
+      // Adaptive performance optimization
+      updatePerformance() {
+        if (!this.performanceMonitor.adaptiveQuality) return;
+        
+        const currentFPS = this.engine.getFps();
+        this.performanceMonitor.fpsHistory.push(currentFPS);
+        
+        // Keep only last 60 samples (~1 second at 60fps)
+        if (this.performanceMonitor.fpsHistory.length > 60) {
+          this.performanceMonitor.fpsHistory.shift();
+        }
+        
+        // Calculate average FPS
+        const avgFPS = this.performanceMonitor.fpsHistory.reduce((a, b) => a + b, 0) / 
+                       this.performanceMonitor.fpsHistory.length;
+        
+        // Adjust quality based on performance
+        if (avgFPS < this.performanceMonitor.minFPS) {
+          // Performance too low, reduce quality
+          this.performanceMonitor.particleQualityLevel = Math.max(0.5, 
+            this.performanceMonitor.particleQualityLevel * 0.9);
+          console.log(`⚠️ Performance: Reducing particle quality to ${this.performanceMonitor.particleQualityLevel.toFixed(2)}`);
+        } else if (avgFPS > this.performanceMonitor.targetFPS * 0.9) {
+          // Performance good, can increase quality
+          this.performanceMonitor.particleQualityLevel = Math.min(2.0, 
+            this.performanceMonitor.particleQualityLevel * 1.05);
+        }
+      }
+      
+      updateMetricsDisplay() {
+        // Calculate camera distance
+        const cameraDistance = BABYLON.Vector3.Distance(
+          this.camera.position,
+          BABYLON.Vector3.Zero()
+        );
+        
+        // Calculate time dilation at current position
+        const dilation = this.dilationCalculator.calculate(cameraDistance);
+        
+        // Black hole metrics
+        document.getElementById('bh-mass').textContent = `${this.blackHole.mass.toFixed(1)} M☉`;
+        document.getElementById('event-horizon').textContent = 
+          `${(this.blackHole.schwarzschildRadius / 1000).toFixed(2)} km`;
+        document.getElementById('temperature').textContent = 
+          `${this.blackHole.temperature.toExponential(2)} K`;
+        document.getElementById('entropy').textContent = 
+          `${(this.blackHole.entropy / PHYSICS_CONSTANTS.K_B).toExponential(2)} k_B`;
+        
+        // Spacetime metrics with time dilation
+        document.getElementById('camera-distance').textContent = cameraDistance.toFixed(1);
+        document.getElementById('distance-ratio').textContent = 
+          `${dilation.distanceRatio.toFixed(1)}x`;
+        document.getElementById('time-dilation-factor').textContent = dilation.factor.toFixed(3);
+        
+        const statusEl = document.getElementById('dilation-status');
+        statusEl.textContent = dilation.description;
+        statusEl.className = 'metric-value';
+        if (dilation.status === 'CRITICAL') {
+          statusEl.classList.add('danger');
+        } else if (dilation.status === 'WARNING' || dilation.status === 'CAUTION') {
+          statusEl.classList.add('warning');
+        }
+        
+        // Update dilation gauge
+        const gaugeBar = document.getElementById('dilationGaugeBar');
+        const gaugeText = document.getElementById('dilationGaugeText');
+        if (gaugeBar && gaugeText) {
+          const percentage = Math.round(dilation.factor * 100);
+          gaugeBar.style.width = `${percentage}%`;
+          gaugeText.textContent = `${percentage}% of Distant Observer Time`;
+        }
+        
+        // Show/hide warning overlay
+        const warningEl = document.getElementById('dilationWarning');
+        if (warningEl) {
+          if (dilation.status === 'CRITICAL') {
+            warningEl.classList.add('active');
+          } else {
+            warningEl.classList.remove('active');
+          }
+        }
+        
+        // Hilbert field metrics
+        document.getElementById('coherence').textContent = 
+          this.hilbertField.coherence.toFixed(3);
+        document.getElementById('weyl').textContent = 
+          this.hilbertField.weylCurvature.toFixed(3);
+        
+        // *** AUDIO METRICS WITH FREQUENCY SHIFT ***
+        const audioMetrics = this.sonificationEngine.getMetrics();
+        document.getElementById('bpm').textContent = audioMetrics.bpm;
+        document.getElementById('time-dilation').textContent = audioMetrics.timeDilation;
+        document.getElementById('harmonic-gradient').textContent = audioMetrics.harmonicGradient;
+        document.getElementById('scale').textContent = audioMetrics.scale;
+        document.getElementById('freq-shift').textContent = `-${audioMetrics.freqShift}%`; // *** FREQUENCY SHIFT DISPLAY ***
+        // Grid distortion factor (for hexagonal grid mode)
+        const gridDistortion = this.gridDistortionFactor !== undefined ? this.gridDistortionFactor : 1.0;
+        document.getElementById('grid-distortion').textContent = `${gridDistortion.toFixed(3)}x`;
+        // ***
+        
+        // Performance metrics
+        document.getElementById('fps').textContent = Math.round(this.engine.getFps());
+        document.getElementById('particle-quality').textContent = 
+          this.performanceMonitor.particleQualityLevel.toFixed(2);
+      }
+      
+      startRenderLoop() {
+        this.engine.runRenderLoop(() => {
+          const deltaTime = this.engine.getDeltaTime() / 1000;
+          
+          // Calculate camera distance from black hole (at origin)
+          const cameraDistance = BABYLON.Vector3.Distance(
+            this.camera.position,
+            BABYLON.Vector3.Zero()
+          );
+          
+          // Update Hilbert field evolution
+          this.hilbertField.applyResonanceOperator(deltaTime, 0.1);
+          
+          // Update sonification system with camera distance for time dilation
+          this.sonificationEngine.update(this.hilbertField, this.blackHole, cameraDistance, deltaTime, this.dilationCalculator);
+          
+          // Update particle systems from physics every 0.5 seconds
+          if (Math.floor(Date.now() / 500) % 2 === 0) {
+            this.updateParticleSystemsFromPhysics();
+          }
+          
+          // Performance monitoring and adaptive quality (every 2 seconds)
+          if (Math.floor(Date.now() / 2000) % 2 === 0) {
+            this.updatePerformance();
+          }
+          
+          // Animate boundary bits with pattern modes
+          const audioMetrics = this.sonificationEngine.getMetrics();
+          const isAudioPlaying = audioMetrics.isPlaying;
+          const time = Date.now() / 1000;
+          
+          this.boundaryBits.forEach((bit, idx) => {
+            // Get audio data if available
+            let oscGain = 0;
+            let oscFreq = 220;
+            if (isAudioPlaying && bit.ringIndex !== undefined && 
+                this.sonificationEngine.gainNodes && 
+                this.sonificationEngine.gainNodes[bit.ringIndex]) {
+              oscGain = this.sonificationEngine.gainNodes[bit.ringIndex].gain.value;
+              oscFreq = this.sonificationEngine.oscillators[bit.ringIndex].frequency.value;
+            }
+            
+            // PATTERN MODE 0: Random Noise (scattered entropy)
+            if (this.boundaryPatternMode === 0) {
+              // Random scattered pattern with entropy colors
+              const noisePhase = (time + idx * 0.1) % (Math.PI * 2);
+              const entropyFactor = this.hilbertField.entropy || 0.3;
+              
+              // Height: oscillates with some randomness
+              bit.position.y = -10 + Math.sin(noisePhase) * (0.3 + oscGain * 0.5);
+              
+              // Color: red vs blue based on position hash + audio
+              const colorSeed = (bit.ringIndex * 7 + bit.angleIndex * 13) % 2;
+              const freqNorm = Math.min(1, oscFreq / 440);
+              
+              if (colorSeed === 0) {
+                // Red cluster
+                bit.material.emissiveColor = new BABYLON.Color3(
+                  0.86 + oscGain * 0.14,
+                  0.15 * (1 - entropyFactor),
+                  0.15 * (1 - entropyFactor)
+                );
+              } else {
+                // Blue cluster
+                bit.material.emissiveColor = new BABYLON.Color3(
+                  0.15 * (1 - entropyFactor),
+                  0.15 * (1 - entropyFactor),
+                  0.86 + oscGain * 0.14
+                );
+              }
+              
+              // Amber highlights for high audio activity
+              if (oscGain > 0.5) {
+                bit.material.emissiveColor = new BABYLON.Color3(0.98, 0.75, 0.14);
+              }
+              
+              const pulse = 0.8 + Math.sin(time * 3 + idx * 0.2) * 0.2;
+              bit.scaling = new BABYLON.Vector3(pulse, pulse, pulse);
+            }
+            
+            // PATTERN MODE 1: Central Pulse (radial gradient)
+            else if (this.boundaryPatternMode === 1) {
+              // Distance from center determines brightness
+              const radius = 3 + (bit.ringIndex * 2.5);
+              const maxRadius = 10.5;
+              const normalizedRadius = radius / maxRadius;
+              
+              // Center is bright, fades outward
+              const intensity = 1 - normalizedRadius;
+              const audioBoost = oscGain * 0.5;
+              
+              // Height based on intensity and audio
+              bit.position.y = -10 + (intensity + audioBoost) * 0.8;
+              
+              // Red gradient from center
+              bit.material.emissiveColor = new BABYLON.Color3(
+                0.9 * (intensity + audioBoost),
+                0.2 * (intensity + audioBoost),
+                0.1 * (intensity + audioBoost)
+              );
+              
+              // Pulsing from center
+              const radialPulse = Math.sin(time * 2 - normalizedRadius * Math.PI) * 0.3;
+              const scale = 0.8 + intensity * 0.4 + radialPulse;
+              bit.scaling = new BABYLON.Vector3(scale, scale, scale);
+            }
+            
+            // PATTERN MODE 2: Hexagonal Grid (checkerboard domains with gravitational warping)
+            else if (this.boundaryPatternMode === 2) {
+              // Calculate time dilation at this bit's position
+              const bitWorldPos = new BABYLON.Vector3(
+                Math.cos((bit.angleIndex / 12) * Math.PI * 2) * (3 + bit.ringIndex * 2.5),
+                -10,
+                Math.sin((bit.angleIndex / 12) * Math.PI * 2) * (3 + bit.ringIndex * 2.5)
+              );
+              const distanceFromBlackHole = BABYLON.Vector3.Distance(bitWorldPos, BABYLON.Vector3.Zero());
+              const localDilation = this.dilationCalculator.calculate(distanceFromBlackHole);
+              
+              // GRAVITATIONAL WARPING: Grid compresses toward black hole
+              // Schwarzschild metric causes radial compression
+              const schwarzschildRadius = this.blackHole.schwarzschildRadius;
+              const warpFactor = 1 - (schwarzschildRadius / distanceFromBlackHole) * 0.7;
+              const warpedRadius = (3 + bit.ringIndex * 2.5) * Math.max(0.3, warpFactor);
+              
+              // Apply warped positions
+              const warpedX = Math.cos((bit.angleIndex / 12) * Math.PI * 2) * warpedRadius;
+              const warpedZ = Math.sin((bit.angleIndex / 12) * Math.PI * 2) * warpedRadius;
+              
+              // Update actual bit position with gravitational compression
+              bit.position.x = warpedX;
+              bit.position.z = warpedZ;
+              
+              // Create hexagonal domain pattern (using original unwrapped coordinates)
+              const gridX = Math.floor((warpedX + 10) / 4);
+              const gridZ = Math.floor((warpedZ + 10) / 4);
+              const isRed = (gridX + gridZ) % 2 === 0;
+              
+              // Height based on time dilation + audio
+              // Closer to black hole = time slows = bits compress downward
+              const dilationCompress = (1 - localDilation.factor) * 0.5;
+              const gridHeight = Math.sin(gridX * 0.5 + time * localDilation.factor) * 0.2;
+              bit.position.y = -10 - dilationCompress + gridHeight + oscGain * 0.3 * localDilation.factor;
+              
+              // Checkerboard colors with redshift
+              // Time dilation causes gravitational redshift
+              const redshiftFactor = Math.pow(localDilation.factor, 0.5);
+              
+              if (isRed) {
+                bit.material.emissiveColor = new BABYLON.Color3(
+                  (0.86 + oscGain * 0.14) * redshiftFactor,
+                  0.15 * redshiftFactor * 0.5,
+                  0.15 * redshiftFactor * 0.5
+                );
+              } else {
+                // Blue gets less redshifted (higher frequency)
+                bit.material.emissiveColor = new BABYLON.Color3(
+                  0.15 * redshiftFactor * 0.5,
+                  0.15 * redshiftFactor * 0.5,
+                  (0.86 + oscGain * 0.14) * Math.sqrt(redshiftFactor)
+                );
+              }
+              
+              // Amber for harmonics (but dimmed near horizon)
+              if (audioMetrics.harmonicGradient > 0.7 && oscGain > 0.4) {
+                bit.material.emissiveColor = new BABYLON.Color3(
+                  0.98 * redshiftFactor, 
+                  0.75 * redshiftFactor, 
+                  0.14 * redshiftFactor
+                );
+              }
+              
+              // Scale affected by time dilation (things shrink near horizon)
+              const gravityScale = 0.6 + localDilation.factor * 0.6;
+              bit.scaling = new BABYLON.Vector3(gravityScale, gravityScale, gravityScale);
+              
+              // Store dilation for audio feedback
+              bit.userData = bit.userData || {};
+              bit.userData.timeDilation = localDilation.factor;
+            }
+          });
+          
+          // Calculate average grid distortion for audio modulation
+          if (this.boundaryPatternMode === 2) {
+            let avgDilation = 0;
+            let count = 0;
+            this.boundaryBits.forEach(bit => {
+              if (bit.userData && bit.userData.timeDilation !== undefined) {
+                avgDilation += bit.userData.timeDilation;
+                count++;
+              }
+            });
+            if (count > 0) {
+              avgDilation /= count;
+              // Feed average grid distortion back to audio engine
+              this.gridDistortionFactor = avgDilation;
+            }
+          }
+          
+          // Animate spectrum bars
+          if (this.spectrumBars && this.spectrumBars.length > 0) {
+            if (isAudioPlaying && this.sonificationEngine.gainNodes) {
+              this.spectrumBars.forEach((bar, i) => {
+                const oscIndex = i % this.sonificationEngine.oscillators.length;
+                const oscGain = this.sonificationEngine.gainNodes[oscIndex]?.gain.value || 0;
+                
+                const targetHeight = 0.2 + (oscGain * 3);
+                bar.scaling.y = bar.scaling.y * 0.9 + targetHeight * 0.1;
+                
+                const gradient = audioMetrics.harmonicGradient;
+                bar.material.emissiveColor = new BABYLON.Color3(
+                  0.26 + gradient * 0.6,
+                  0.13 + gradient * 0.4,
+                  0.49 + gradient * 0.3
+                );
+              });
+            } else {
+              this.spectrumBars.forEach(bar => {
+                bar.scaling.y = 0.2;
+                bar.material.emissiveColor = new BABYLON.Color3(0.26, 0.13, 0.49);
+              });
+            }
+          }
+          
+          // Animate harmonic rings
+          if (this.harmonicRings && this.harmonicRings.length > 0) {
+            if (isAudioPlaying && this.sonificationEngine.gainNodes) {
+              this.harmonicRings.forEach((ring, i) => {
+                if (this.sonificationEngine.gainNodes[i]) {
+                  const oscGain = this.sonificationEngine.gainNodes[i].gain.value;
+                  const oscFreq = this.sonificationEngine.oscillators[i].frequency.value;
+                  
+                  ring.rotation.z += (oscFreq / 440) * deltaTime * 0.5;
+                  ring.material.alpha = 0.2 + (oscGain * 0.6);
+                  ring.material.emissiveColor = new BABYLON.Color3(
+                    0.66 * (0.5 + oscGain),
+                    0.33 * (0.5 + oscGain),
+                    0.97 * (0.5 + oscGain)
+                  );
+                  
+                  const timeDilation = parseFloat(audioMetrics.timeDilation);
+                  const pulse = 1 + Math.sin(Date.now() / (300 / timeDilation)) * 0.1;
+                  ring.scaling = new BABYLON.Vector3(pulse, pulse, 1);
+                }
+              });
+            } else {
+              this.harmonicRings.forEach(ring => {
+                ring.rotation.z += deltaTime * 0.1;
+                ring.material.alpha = 0.3;
+                ring.material.emissiveColor = new BABYLON.Color3(0.66, 0.33, 0.97);
+              });
+            }
+          }
+          
+          // Pulse holographic plane with BPM
+          if (isAudioPlaying) {
+            const bpmPhase = (Date.now() / 1000) * (audioMetrics.bpm / 60);
+            const bpmPulse = Math.sin(bpmPhase * Math.PI * 2) * 0.05;
+            this.holographicPlane.material.alpha = 0.15 + Math.abs(bpmPulse);
+          }
+          
+          // Rotate Planck grid
+          this.planckGrid.rotation.y += deltaTime * 0.2;
+          
+          // Pulse gravity lens based on entropy
+          const pulseFactor = 1 + Math.sin(Date.now() / 1000) * 0.05;
+          const baseScale = 1 + Math.log10(this.blackHole.mass);
+          this.gravityLens.scaling = new BABYLON.Vector3(
+            baseScale * 2 * pulseFactor,
+            baseScale * 2 * pulseFactor,
+            baseScale * 2 * pulseFactor
+          );
+          
+          // Update metrics display periodically
+          if (Math.floor(Date.now() / 100) % 10 === 0) {
+            this.updateMetricsDisplay();
+          }
+          
+          // Record quantum state periodically for ledger
+          if (Math.floor(Date.now() / 1000) % 5 === 0) {
+            this.ledgerState.recordInteraction('periodic_state_capture', {
+              coherence: this.hilbertField.coherence,
+              dominant: this.hilbertField.getDominantHarmonic(),
+              audioMetrics: this.sonificationEngine.getMetrics(),
+              cameraDistance: cameraDistance.toFixed(2),
+              fps: this.engine.getFps().toFixed(1),
+              particleQuality: this.performanceMonitor.particleQualityLevel.toFixed(2)
+            });
+          }
+          
+          this.scene.render();
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+          this.engine.resize();
+        });
+      }
+    }
+
+    // ========================================
+    // INITIALIZE APPLICATION
+    // ========================================
+    
+    // Check if Babylon is loaded
+    if (typeof BABYLON === 'undefined') {
+      console.error('BABYLON.js failed to load');
+      document.getElementById('loading-text').textContent = 'Error: Failed to load 3D engine';
+      return;
+    }
+    
+    const app = new GravityEntropyScene();
+    window.app = app; // For debugging
+    
+    // ========================================
+    // UI PANEL TOGGLE MANAGER
+    // ========================================
+    
+    class UIPanelManager {
+      constructor() {
+        this.panels = {
+          metrics: { element: document.getElementById('metricsPanel'), key: 'M', collapsed: false },
+          controls: { element: document.getElementById('controlsPanel'), key: 'C', collapsed: true },
+          ledger: { element: document.getElementById('ledgerPanel'), key: 'L', collapsed: true },
+          instructions: { element: document.getElementById('instructionsPanel'), key: 'I', collapsed: true }
+        };
+        
+        this.header = document.querySelector('.header');
+        this.allUIHidden = false;
+        this.shortcutsVisible = false;
+        
+        // Apply initial collapsed states BEFORE loading preferences
+        this.applyInitialStates();
+        
+        // Load saved preferences from localStorage (will override initial states)
+        this.loadPreferences();
+        
+        // Setup event listeners
+        this.setupToggleButtons();
+        this.setupKeyboardShortcuts();
+        this.setupMasterToggle();
+        this.setupHelpToggle();
+      }
+      
+      applyInitialStates() {
+        // Apply the default collapsed states defined in constructor
+        Object.keys(this.panels).forEach(panelName => {
+          const panel = this.panels[panelName];
+          if (panel.collapsed) {
+            panel.element.classList.add('collapsed');
+            const toggleBtn = panel.element.querySelector('.panel-toggle-btn');
+            if (toggleBtn) toggleBtn.textContent = '+';
+          }
+        });
+      }
+      
+      setupToggleButtons() {
+        // Individual panel toggle buttons
+        document.getElementById('toggleMetrics').addEventListener('click', () => {
+          this.togglePanel('metrics');
+        });
+        
+        document.getElementById('toggleControls').addEventListener('click', () => {
+          this.togglePanel('controls');
+        });
+        
+        document.getElementById('toggleLedger').addEventListener('click', () => {
+          this.togglePanel('ledger');
+        });
+        
+        document.getElementById('toggleInstructions').addEventListener('click', () => {
+          this.togglePanel('instructions');
+        });
+      }
+      
+      setupKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+          // Ignore if user is typing in an input field
+          if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+          }
+          
+          const key = e.key.toUpperCase();
+          
+          switch(key) {
+            case 'M':
+              this.togglePanel('metrics');
+              break;
+            case 'C':
+              this.togglePanel('controls');
+              break;
+            case 'L':
+              this.togglePanel('ledger');
+              break;
+            case 'I':
+              this.togglePanel('instructions');
+              break;
+            case 'H':
+              this.toggleAllUI();
+              break;
+            case '?':
+              this.toggleShortcutsDisplay();
+              break;
+          }
+        });
+      }
+      
+      setupMasterToggle() {
+        const masterToggle = document.getElementById('masterUIToggle');
+        const masterToggleText = document.getElementById('masterUIToggleText');
+        
+        masterToggle.addEventListener('click', () => {
+          this.toggleAllUI();
+          masterToggleText.textContent = this.allUIHidden ? 'Show UI' : 'Hide UI';
+        });
+      }
+      
+      setupHelpToggle() {
+        const helpToggle = document.getElementById('helpToggle');
+        helpToggle.addEventListener('click', () => {
+          this.toggleShortcutsDisplay();
+        });
+      }
+      
+      togglePanel(panelName) {
+        const panel = this.panels[panelName];
+        if (!panel) return;
+        
+        panel.collapsed = !panel.collapsed;
+        
+        if (panel.collapsed) {
+          panel.element.classList.add('collapsed');
+          // Update button text to expand icon
+          const toggleBtn = panel.element.querySelector('.panel-toggle-btn');
+          if (toggleBtn) toggleBtn.textContent = '+';
+        } else {
+          panel.element.classList.remove('collapsed');
+          // Update button text to collapse icon
+          const toggleBtn = panel.element.querySelector('.panel-toggle-btn');
+          if (toggleBtn) toggleBtn.textContent = '−';
+        }
+        
+        // Save preferences
+        this.savePreferences();
+      }
+      
+      toggleAllUI() {
+        this.allUIHidden = !this.allUIHidden;
+        
+        // Toggle all panels
+        Object.keys(this.panels).forEach(panelName => {
+          const panel = this.panels[panelName];
+          if (this.allUIHidden) {
+            panel.element.classList.add('hidden');
+          } else {
+            panel.element.classList.remove('hidden');
+          }
+        });
+        
+        // Toggle header
+        if (this.allUIHidden) {
+          this.header.classList.add('hidden');
+        } else {
+          this.header.classList.remove('hidden');
+        }
+        
+        // Save preferences
+        this.savePreferences();
+      }
+      
+      toggleShortcutsDisplay() {
+        this.shortcutsVisible = !this.shortcutsVisible;
+        const shortcuts = document.getElementById('keyboardShortcuts');
+        
+        if (this.shortcutsVisible) {
+          shortcuts.classList.add('visible');
+          // Auto-hide after 5 seconds
+          setTimeout(() => {
+            if (this.shortcutsVisible) {
+              this.toggleShortcutsDisplay();
+            }
+          }, 5000);
+        } else {
+          shortcuts.classList.remove('visible');
+        }
+      }
+      
+      savePreferences() {
+        const preferences = {
+          allUIHidden: this.allUIHidden,
+          panelStates: {}
+        };
+        
+        Object.keys(this.panels).forEach(panelName => {
+          preferences.panelStates[panelName] = this.panels[panelName].collapsed;
+        });
+        
+        localStorage.setItem('gravityEntropyUIPrefs', JSON.stringify(preferences));
+      }
+      
+      loadPreferences() {
+        const savedPrefs = localStorage.getItem('gravityEntropyUIPrefs');
+        if (!savedPrefs) return;
+        
+        try {
+          const preferences = JSON.parse(savedPrefs);
+          
+          // Restore all UI hidden state
+          if (preferences.allUIHidden) {
+            this.allUIHidden = true;
+            Object.keys(this.panels).forEach(panelName => {
+              this.panels[panelName].element.classList.add('hidden');
+            });
+            this.header.classList.add('hidden');
+            document.getElementById('masterUIToggleText').textContent = 'Show UI';
+          }
+          
+          // Restore individual panel collapsed states
+          if (preferences.panelStates) {
+            Object.keys(preferences.panelStates).forEach(panelName => {
+              if (preferences.panelStates[panelName]) {
+                const panel = this.panels[panelName];
+                panel.collapsed = true;
+                panel.element.classList.add('collapsed');
+                const toggleBtn = panel.element.querySelector('.panel-toggle-btn');
+                if (toggleBtn) toggleBtn.textContent = '+';
+              }
+            });
+          }
+        } catch (e) {
+          console.warn('Failed to load UI preferences:', e);
+        }
+      }
+    }
+    
+    // Initialize UI Panel Manager
+    const uiManager = new UIPanelManager();
+    window.uiManager = uiManager; // For debugging
+    
+    console.log('🌰✧🦊∿φ∞🐿️ Gravity-Entropy Duality System Initialized (Time Dilation Enhanced)');
+    console.log('Hilbert Field:', app.hilbertField);
+    console.log('Black Hole Metrics:', app.blackHole);
+    console.log('Garden Ledger State:', app.ledgerState);
+    console.log('Sonification Engine: Time Dilation Mode Active');
+    
+    } // End of initializeSystem function
+  </script>
+</body>
+</html>
