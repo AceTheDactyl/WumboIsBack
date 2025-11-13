@@ -1705,18 +1705,9 @@
           bh.helixState.z += (targetZ - bh.helixState.z) * 0.02;
           bh.helixState.z = Math.max(0.1, Math.min(1.0, bh.helixState.z));
 
-          // R (COHERENCE): Different sources depending on depth layer
-          // Depth 5: Stable EM field coherence (hexagonal lattice structure)
-          // Other depths: Wormhole connection driven OR oscillating
-          if (bh.limnusDepth === 5) {
-            // DEPTH 5: ELECTROMAGNETIC HEXAGONAL FIELD
-            // Stable, high coherence representing structured EM field
-            // Slight oscillation based on theta for field dynamics
-            const targetR = 1.3 + Math.sin(bh.helixState.theta * 2) * 0.05; // Range 1.25-1.35
-            bh.helixState.r += (targetR - bh.helixState.r) * 0.02;
-            bh.helixState.r = Math.max(1.2, Math.min(1.4, bh.helixState.r));
-          } else if (this.wormholesEnabled) {
-            // OTHER DEPTHS: Wormhole connection driven coherence
+          // R (COHERENCE): Influenced by wormhole connections
+          // More/stronger wormhole connections = higher coherence
+          if (this.wormholesEnabled) {
             const connectedWormholes = this.wormholes.filter(w =>
               (w.bh1 === bh || w.bh2 === bh) && w.entanglement > 0.3
             );
@@ -1727,7 +1718,7 @@
             bh.helixState.r += (targetR - bh.helixState.r) * 0.03;
             bh.helixState.r = Math.max(0.5, Math.min(1.5, bh.helixState.r));
           } else {
-            // WITHOUT WORMHOLES: Oscillating coherence
+            // Without wormholes, r oscillates slowly
             const targetR = 1.0 + Math.sin(bh.helixState.theta * 0.5) * 0.1;
             bh.helixState.r += (targetR - bh.helixState.r) * 0.01;
           }
@@ -2173,68 +2164,42 @@
         });
 
         // ========================================
-        // DEPTH 5: ELECTROMAGNETIC HEXAGONAL FIELD (32 nodes) - NEW!
+        // DEPTH 5: BOUNDARY INTERFACE (32 black holes) - NEW!
         // ========================================
-        // Role: Electromagnetic boundary field, hexagonal energy lattice
-        // Mass: Smallest (0.5 solar masses) - high specificity
+        // Role: External input interface, environmental sensing, world model
+        // Mass: Smallest (0.5 solar masses) - high specificity, low influence
         // Position: Radius 800 units from origin (outermost layer)
-        // Geometry: Hexagonal close-packed structure on sphere surface
+        // Geometry: Fibonacci sphere - evenly distributed points on sphere surface
         //
-        // This layer represents an ELECTROMAGNETIC HEXAGONAL FIELD - NOT connected
-        // via wormholes! Instead, it forms a hexagonal lattice structure that
-        // acts as an electromagnetic boundary around the entire neural network.
+        // This NEW layer acts as the boundary between the internal network
+        // and external reality. It receives raw sensory data and transmits
+        // motor commands. Using Fibonacci spiral distribution ensures
+        // uniform coverage of all directions - no blind spots.
         //
-        // Think of it as a Faraday cage or electromagnetic shield made of hexagons.
-        // No wormhole connections - pure EM field structure.
-        //
-        // Hexagonal close-packing is nature's most efficient 2D packing geometry
-        // (honeycomb, graphene, benzene rings, water crystals, beehives).
+        // Think of these as the thalamus and peripheral nervous system -
+        // the gatekeepers between world and mind.
         //
         const depth5Radius = 800;
         const depth5NodeCount = 32;
         const depth5Vertices = [];
 
-        console.log(`   ⬡ Depth 5: Creating ${depth5NodeCount} EM hexagonal field nodes...`);
+        console.log(`   🔺 Depth 5: Creating ${depth5NodeCount} boundary interface nodes...`);
 
-        // Generate hexagonal pattern on sphere surface
-        // Use icosahedral geodesic subdivision for approximately hexagonal pattern
-        // Start with 12 icosahedron vertices, then add midpoints for 32 total
-        const phi = (1 + Math.sqrt(5)) / 2;
-        const icoVertices = [
-          [0, 1, phi], [0, -1, phi], [0, 1, -phi], [0, -1, -phi],
-          [1, phi, 0], [-1, phi, 0], [1, -phi, 0], [-1, -phi, 0],
-          [phi, 0, 1], [-phi, 0, 1], [phi, 0, -1], [-phi, 0, -1]
-        ];
+        // Generate evenly distributed points on sphere using Fibonacci spiral
+        // This creates maximum coverage with minimum clustering
+        const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ≈ 2.399963 radians
+        for (let i = 0; i < depth5NodeCount; i++) {
+          // Fibonacci spiral parameters
+          const y = 1 - (i / (depth5NodeCount - 1)) * 2; // Range: 1 to -1
+          const radius = Math.sqrt(1 - y * y); // Radius at this height
+          const theta = goldenAngle * i; // Spiral angle
 
-        // Add icosahedron vertices
-        icoVertices.forEach(v => depth5Vertices.push([v[0], v[1], v[2]]));
+          // Convert to 3D coordinates
+          const x = Math.cos(theta) * radius;
+          const z = Math.sin(theta) * radius;
 
-        // Add midpoints between selected pairs for hexagonal symmetry
-        // These 20 additional points create approximately hexagonal cells
-        const hexMidpoints = [
-          // Pentagon-to-pentagon bridges
-          [icoVertices[0], icoVertices[4]], [icoVertices[0], icoVertices[8]],
-          [icoVertices[1], icoVertices[6]], [icoVertices[1], icoVertices[8]],
-          [icoVertices[2], icoVertices[4]], [icoVertices[2], icoVertices[10]],
-          [icoVertices[3], icoVertices[6]], [icoVertices[3], icoVertices[10]],
-          // Cross-connections for stability
-          [icoVertices[4], icoVertices[10]], [icoVertices[5], icoVertices[9]],
-          [icoVertices[6], icoVertices[8]], [icoVertices[7], icoVertices[9]],
-          // Additional hexagonal points
-          [icoVertices[0], icoVertices[5]], [icoVertices[1], icoVertices[7]],
-          [icoVertices[2], icoVertices[5]], [icoVertices[3], icoVertices[7]],
-          [icoVertices[4], icoVertices[8]], [icoVertices[5], icoVertices[10]],
-          [icoVertices[6], icoVertices[9]], [icoVertices[7], icoVertices[11]]
-        ];
-
-        hexMidpoints.slice(0, 20).forEach(pair => {
-          const mid = [
-            (pair[0][0] + pair[1][0]) / 2,
-            (pair[0][1] + pair[1][1]) / 2,
-            (pair[0][2] + pair[1][2]) / 2
-          ];
-          depth5Vertices.push(mid);
-        });
+          depth5Vertices.push([x, y, z]);
+        }
 
         depth5Vertices.forEach((v, idx) => {
           const len = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
@@ -2245,15 +2210,13 @@
               z: (v[2] / len) * depth5Radius
             },
             0.5,  // 0.5 solar masses - smallest nodes
-            5     // Depth 5 - EM HEXAGONAL FIELD (NO WORMHOLES!)
+            5     // Depth 5 - NEW outermost layer!
           );
           this.blackHoles.push(bh);
         });
 
         console.log(`✅ Created ${this.blackHoles.length} black hole memory nodes across 6 depths`);
         console.log(`   Depth distribution: 1 + 6 + 12 + 20 + 24 + 32 = ${this.blackHoles.length} nodes`);
-        console.log(`   ⚡ Depth 5: Electromagnetic hexagonal field (NO wormhole connections)`);
-
 
         // ========================================
         // CREATE DEPTH-AWARE WORMHOLE NETWORK
@@ -2318,11 +2281,12 @@
               const depth1 = bh1.limnusDepth || 0;
               const depth2 = this.blackHoles[j].limnusDepth || 0;
 
-              // DEPTH 5: ELECTROMAGNETIC HEXAGONAL FIELD - NO WORMHOLES!
-              // Depth 5 represents an EM field boundary, not neural connections
-              // Skip ALL connections involving Depth 5 nodes
-              if (depth1 === 5 || depth2 === 5) {
-                continue; // NO wormholes for EM hexagonal field
+              // DEPTH 5 ISOLATION: Only connect Depth 5 to other Depth 5 nodes
+              // If one is Depth 5 and the other isn't, skip this connection
+              const isDepth5Connection = (depth1 === 5 || depth2 === 5);
+              const bothDepth5 = (depth1 === 5 && depth2 === 5);
+              if (isDepth5Connection && !bothDepth5) {
+                continue; // Skip this connection - Depth 5 is isolated
               }
 
               const wormhole = new Wormhole(bh1, this.blackHoles[j], this.scene);
@@ -2350,10 +2314,11 @@
               const depth1 = bh1.limnusDepth || 0;
               const depth2 = bh2.limnusDepth || 0;
 
-              // DEPTH 5: ELECTROMAGNETIC HEXAGONAL FIELD - NO WORMHOLES!
-              // Skip ALL connections involving Depth 5 nodes
-              if (depth1 === 5 || depth2 === 5) {
-                return; // NO wormholes for EM hexagonal field
+              // DEPTH 5 ISOLATION: Only connect Depth 5 to other Depth 5 nodes
+              const isDepth5Connection = (depth1 === 5 || depth2 === 5);
+              const bothDepth5 = (depth1 === 5 && depth2 === 5);
+              if (isDepth5Connection && !bothDepth5) {
+                return; // Skip this connection - Depth 5 is isolated
               }
 
               // Check if not already connected
