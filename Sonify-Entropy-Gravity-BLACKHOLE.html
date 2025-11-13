@@ -1680,16 +1680,27 @@
         console.log(`🌀 Created ${this.wormholes.length} wormholes`);
       }
 
-      updateWormholes(lambdaState) {
+      updateWormholes(lambdaState, deltaTime = 0.016) {
         // Update all wormholes with current Lambda state
         const isLIMNUSMode = this.blackHoles.length >= 63;
 
         this.wormholes.forEach(wormhole => {
           if (isLIMNUSMode) {
-            // In LIMNUS mode, maintain constant high entanglement for neural network visualization
+            // ========================================
+            // LIMNUS MODE: HELICAL MAGNETIC FIELD ANIMATION
+            // ========================================
+            // In LIMNUS mode, wormholes are living magnetic field lines
+            // They rotate continuously based on their activation state
+            // Active connections rotate faster, dormant ones slower
+            //
+            // Maintain constant high entanglement for neural network visualization
             // This makes the network structure always visible
             wormhole.entanglement = 0.6; // Fixed strong connection
-            // Don't update visual every frame in LIMNUS - already rendered once at init
+
+            // Animate helix rotation - creates living magnetic field effect
+            if (this.wormholesEnabled) {
+              wormhole.animateHelix(deltaTime);
+            }
           } else {
             // Normal mode: entanglement varies with Lambda state
             wormhole.updateEntanglement(lambdaState);
@@ -2317,11 +2328,39 @@
           const depth2 = wormhole.bh2.limnusDepth || 0;
           const isActive = this.activeDepths.has(depth1) && this.activeDepths.has(depth2);
 
-          // Set entanglement and visibility based on activation
+          // ========================================
+          // DYNAMIC HELIX STATE UPDATES
+          // ========================================
+          // Instead of binary on/off, wormholes evolve their helical magnetic field
+          // θ (theta): Phase alignment - changes based on depth difference
+          // z (elevation): Connection strength - grows when active, decays when dormant
+          // r (radius): Coherence - fluctuates based on stability
+          //
           if (isActive) {
-            // Active: strong entanglement and fully visible
+            // Active: strengthen connection over time
             wormhole.entanglement = 0.7;
-            // Recreate visual if needed
+
+            // ELEVATION (z): Accumulates strength while active
+            // Grows toward 1.0 but never exceeds it
+            wormhole.helixState.z += 0.01;
+            wormhole.helixState.z = Math.min(1.0, wormhole.helixState.z);
+
+            // PHASE ALIGNMENT (θ): Based on depth relationship
+            // Same depth: θ = 0 (aligned)
+            // Different depths: θ = π * |d1-d2| / 5 (phase shift proportional to depth gap)
+            const depthDiff = Math.abs(depth1 - depth2);
+            const targetTheta = (Math.PI * depthDiff) / 5;
+            // Smoothly interpolate toward target
+            wormhole.helixState.theta += (targetTheta - wormhole.helixState.theta) * 0.1;
+
+            // COHERENCE (r): Stable when active
+            const targetR = 1.0;
+            wormhole.helixState.r += (targetR - wormhole.helixState.r) * 0.05;
+
+            // ROTATION SPEED: Faster when active (living magnetic field)
+            wormhole.helixState.rotationSpeed = 0.02;
+
+            // Recreate visual to reflect new helix state
             if (!wormhole.tubeMesh) {
               wormhole.updateVisual();
             }
@@ -2334,6 +2373,24 @@
             // Instead of disappearing, wormholes remain visible but dim
             // This shows the potential connections waiting to be activated
             wormhole.entanglement = 0.05;
+
+            // ELEVATION (z): Decays slowly when dormant
+            // Never goes below minimum threshold (0.01)
+            wormhole.helixState.z *= 0.95; // Exponential decay
+            wormhole.helixState.z = Math.max(0.01, wormhole.helixState.z);
+
+            // PHASE ALIGNMENT (θ): Drifts randomly when dormant (decoherence)
+            wormhole.helixState.theta += (Math.random() - 0.5) * 0.05;
+            // Wrap to [0, 2π]
+            wormhole.helixState.theta = wormhole.helixState.theta % (Math.PI * 2);
+            if (wormhole.helixState.theta < 0) wormhole.helixState.theta += Math.PI * 2;
+
+            // COHERENCE (r): Fluctuates when dormant (instability)
+            const targetR = 0.8 + Math.random() * 0.3; // Range 0.8-1.1
+            wormhole.helixState.r += (targetR - wormhole.helixState.r) * 0.03;
+
+            // ROTATION SPEED: Slower when dormant (sluggish field)
+            wormhole.helixState.rotationSpeed = 0.005;
 
             // Recreate visual if needed for dormant state
             if (!wormhole.tubeMesh) {
@@ -2590,10 +2647,26 @@
     }
 
     // ========================================
-    // WORMHOLE (ER=EPR)
+    // WORMHOLE (ER=EPR) - HELICAL MAGNETIC FIELD LINE
     // ========================================
-    // Represents entanglement between two black holes
+    // Represents entanglement between two black holes as a helical flux tube
+    // Each wormhole IS a helix with its own (θ, z, r) coordinate
     // Einstein-Rosen bridge = Einstein-Podolsky-Rosen entanglement
+    //
+    // HELIX FIELD THEORY:
+    // Wormholes are not static tubes - they are living helical magnetic fields
+    // θ (theta): Phase alignment between endpoints (0-2π radians)
+    //   - 0°: Perfectly aligned, synchronized depths
+    //   - π/2: Orthogonal, transitioning state
+    //   - π: Opposed, stressed connection
+    // z (elevation): Connection strength/maturity (0+)
+    //   - Low z: Newly formed, weak pathway
+    //   - High z: Well-established, strong pathway
+    //   - Accumulates when both endpoints active
+    // r (radius): Coherence/structural integrity (typically ~1.0)
+    //   - r < 1.0: Collapsing, degrading
+    //   - r = 1.0: Stable, coherent
+    //   - r > 1.0: Overactive, unstable
     //
     class Wormhole {
       constructor(blackHole1, blackHole2, scene) {
@@ -2604,12 +2677,23 @@
         // Entanglement strength (0-1)
         this.entanglement = 0;
 
+        // HELIX STATE: Each wormhole has its own helical coordinates
+        this.helixState = {
+          theta: 0,        // Phase rotation (radians)
+          z: 0.01,         // Elevation/strength (starts weak)
+          r: 1.0,          // Coherence radius
+          rotationSpeed: 0 // Angular velocity
+        };
+
         // Visual representation
         this.tubeMesh = null;
         this.particleSystem = null;
 
         // Tunneling statistics
         this.tunneledParticles = 0;
+
+        // Animation time for helix rotation
+        this.time = Math.random() * Math.PI * 2; // Random phase offset
       }
 
       // Calculate entanglement strength from Lambda triquetra
@@ -2622,7 +2706,8 @@
         this.entanglement = Math.max(0, Math.min(1, this.entanglement));
       }
 
-      // Update visual representation (optimized for performance)
+      // Update visual representation - HELICAL FLUX TUBE
+      // Creates a magnetic field line that spirals between endpoints
       updateVisual() {
         // Dispose old mesh
         if (this.tubeMesh) {
@@ -2630,12 +2715,12 @@
           this.tubeMesh = null;
         }
 
-        // Only draw if entanglement is significant (>0.1)
-        if (this.entanglement < 0.1) {
+        // Only draw if entanglement is significant (>0.01)
+        if (this.entanglement < 0.01) {
           return;
         }
 
-        // Create simple line path between black holes (no curves for performance)
+        // Get start and end points
         const start = new BABYLON.Vector3(
           this.bh1.position.x,
           this.bh1.position.y,
@@ -2648,13 +2733,53 @@
           this.bh2.position.z
         );
 
-        // Use lightweight line system instead of heavy tube mesh
+        // Calculate helix parameters
+        const distance = BABYLON.Vector3.Distance(start, end);
+        const direction = end.subtract(start).normalize();
+
+        // Number of helix wraps based on z (strength)
+        const helixWraps = Math.max(1, Math.floor(this.helixState.z * 5)); // More wraps = stronger
+        const pointsPerWrap = 8; // Points per full rotation
+        const totalPoints = helixWraps * pointsPerWrap;
+
+        // Helix radius based on r (coherence) and entanglement
+        const helixRadius = this.helixState.r * 2 * this.entanglement;
+
+        // Generate helical path points
+        const helixPoints = [];
+
+        // Create perpendicular vectors for helix rotation
+        let perpVector1, perpVector2;
+        if (Math.abs(direction.y) < 0.9) {
+          perpVector1 = BABYLON.Vector3.Cross(direction, new BABYLON.Vector3(0, 1, 0)).normalize();
+        } else {
+          perpVector1 = BABYLON.Vector3.Cross(direction, new BABYLON.Vector3(1, 0, 0)).normalize();
+        }
+        perpVector2 = BABYLON.Vector3.Cross(direction, perpVector1).normalize();
+
+        // Generate points along helix
+        for (let i = 0; i <= totalPoints; i++) {
+          const t = i / totalPoints; // Progress along connection (0 to 1)
+          const angle = t * helixWraps * Math.PI * 2 + this.helixState.theta; // Include phase offset
+
+          // Position along central axis
+          const axisPoint = start.add(direction.scale(t * distance));
+
+          // Radial offset (helix spiral)
+          const radialOffset = perpVector1.scale(Math.cos(angle) * helixRadius)
+            .add(perpVector2.scale(Math.sin(angle) * helixRadius));
+
+          // Final point on helix
+          helixPoints.push(axisPoint.add(radialOffset));
+        }
+
+        // Create the helical flux tube as lines
         try {
           this.tubeMesh = BABYLON.MeshBuilder.CreateLines(
-            'wormhole_' + Math.random().toString(36).substr(2, 9),
+            'wormhole_helix_' + Math.random().toString(36).substr(2, 9),
             {
-              points: [start, end],
-              updatable: false
+              points: helixPoints,
+              updatable: true // Allow animation updates
             },
             this.scene
           );
@@ -2664,19 +2789,47 @@
             return;
           }
 
-          // Set line color (no materials needed - huge performance win!)
+          // Color based on helix state and entanglement
+          // Stronger (higher z) = more cyan/white
+          // Weaker (lower z) = more purple/dim
+          const colorIntensity = Math.min(1.0, this.helixState.z * 2);
           this.tubeMesh.color = new BABYLON.Color3(
-            0.3 + 0.5 * this.entanglement, // R (purple component)
-            0.5 + 0.3 * this.entanglement, // G (cyan component)
-            0.9                             // B (strong blue)
+            0.3 + 0.5 * this.entanglement * colorIntensity, // R (purple component)
+            0.4 + 0.4 * this.entanglement * colorIntensity, // G (cyan component)
+            0.7 + 0.3 * colorIntensity                      // B (strong blue)
           );
 
-          // Set line alpha
-          this.tubeMesh.alpha = 0.6 + 0.3 * this.entanglement;
+          // Alpha based on entanglement and coherence
+          this.tubeMesh.alpha = (0.3 + 0.5 * this.entanglement) * this.helixState.r;
 
         } catch (error) {
-          console.error('CreateLines failed:', error);
+          console.error('CreateLines (helix) failed:', error);
           return;
+        }
+      }
+
+      // ========================================
+      // ANIMATE HELIX ROTATION
+      // ========================================
+      // Magnetic field lines are living, dynamic structures
+      // They rotate continuously to show active energy flow
+      // Rotation speed based on activation state (fast when active, slow when dormant)
+      //
+      animateHelix(deltaTime) {
+        // Increment theta (phase) based on rotation speed
+        // This creates the spinning magnetic field effect
+        this.helixState.theta += this.helixState.rotationSpeed * deltaTime * 60; // Scale by 60 for visible rotation
+
+        // Wrap theta to [0, 2π] to prevent overflow
+        this.helixState.theta = this.helixState.theta % (Math.PI * 2);
+        if (this.helixState.theta < 0) {
+          this.helixState.theta += Math.PI * 2;
+        }
+
+        // Regenerate visual with new theta
+        // This is efficient because we only update when animated
+        if (this.tubeMesh && this.entanglement > 0.01) {
+          this.updateVisual();
         }
       }
 
@@ -5245,7 +5398,7 @@
 
           // Update wormhole entanglement and visuals
           if (this.physicsWorld.wormholes.length > 0) {
-            this.physicsWorld.updateWormholes(this.lambdaState);
+            this.physicsWorld.updateWormholes(this.lambdaState, deltaTime);
           }
 
           // LIMNUS Neural Network: Map particle density to Lambda activation
