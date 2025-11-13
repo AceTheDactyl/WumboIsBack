@@ -2033,6 +2033,412 @@
     }
 
     // ========================================
+    // HAMILTONIAN QUANTUM EVOLUTION SYSTEM
+    // ========================================
+    // Implements full Schrödinger equation: ∂ψ/∂t = iℏHψ
+    // H = H₀ + H_int where:
+    //   H₀ = -ℏ²/2m ∇² + V(x)  (free Hamiltonian)
+    //   H_int = Σ g_ij φ_i(x)·φ_j(x)  (interaction Hamiltonian)
+    //
+
+    // ========================================
+    // COMPLEX NUMBER CLASS
+    // ========================================
+    // Required for quantum amplitudes ψ = |ψ|e^(iθ)
+    //
+    class ComplexNumber {
+      constructor(real, imag) {
+        this.re = real || 0;
+        this.im = imag || 0;
+      }
+
+      // Magnitude: |z| = √(re² + im²)
+      magnitude() {
+        return Math.sqrt(this.re * this.re + this.im * this.im);
+      }
+
+      // Phase: arg(z) = atan2(im, re)
+      phase() {
+        return Math.atan2(this.im, this.re);
+      }
+
+      // Addition: z1 + z2
+      add(other) {
+        return new ComplexNumber(
+          this.re + other.re,
+          this.im + other.im
+        );
+      }
+
+      // Subtraction: z1 - z2
+      sub(other) {
+        return new ComplexNumber(
+          this.re - other.re,
+          this.im - other.im
+        );
+      }
+
+      // Multiplication: z1 * z2
+      mult(other) {
+        if (typeof other === 'number') {
+          return new ComplexNumber(this.re * other, this.im * other);
+        }
+        return new ComplexNumber(
+          this.re * other.re - this.im * other.im,
+          this.re * other.im + this.im * other.re
+        );
+      }
+
+      // Division: z1 / z2
+      div(other) {
+        const denom = other.re * other.re + other.im * other.im;
+        return new ComplexNumber(
+          (this.re * other.re + this.im * other.im) / denom,
+          (this.im * other.re - this.re * other.im) / denom
+        );
+      }
+
+      // Complex conjugate: z* = re - i·im
+      conjugate() {
+        return new ComplexNumber(this.re, -this.im);
+      }
+
+      // Exponential: e^(iθ) = cos(θ) + i·sin(θ)
+      static exp(theta) {
+        return new ComplexNumber(Math.cos(theta), Math.sin(theta));
+      }
+
+      // From polar: r·e^(iθ)
+      static fromPolar(r, theta) {
+        return new ComplexNumber(r * Math.cos(theta), r * Math.sin(theta));
+      }
+    }
+
+    // ========================================
+    // PHYSICAL CONSTANTS
+    // ========================================
+    const QUANTUM_CONSTANTS = {
+      HBAR: 1.054571817e-34,      // Reduced Planck constant (J·s)
+      HBAR_SCALED: 1.0,            // Scaled to simulation units
+      ELECTRON_MASS: 9.1093837e-31, // Electron mass (kg)
+      M_SCALED: 1.0,               // Scaled particle mass
+      C: 299792458,                // Speed of light (m/s)
+      C_SCALED: 100,               // Scaled speed of light
+
+      // Coupling constants
+      G_PHI_PSI: 0.1,              // φ-ψ coupling strength
+      G_PSI_CHI: 0.05,             // ψ-χ coupling strength
+      G_PHI_UPSILON: 0.08,         // φ-υ coupling
+      G_TAU_RHO: 0.03,             // τ-ρ coupling
+      G_OMEGA_CHI: 0.04,           // Ω-χ coupling
+
+      // Self-interaction strengths
+      LAMBDA_PHI: 0.01,            // φ⁴ self-interaction
+      LAMBDA_PSI: 0.02             // ψ⁴ self-interaction
+    };
+
+    // ========================================
+    // HAMILTONIAN OPERATOR
+    // ========================================
+    // H = H₀ + H_int
+    // ∂ψ/∂t = iℏHψ (Schrödinger equation)
+    //
+    class HamiltonianOperator {
+      constructor(sevenFields) {
+        this.fields = sevenFields;
+        this.constants = QUANTUM_CONSTANTS;
+
+        // Grid spacing for Laplacian (discrete approximation)
+        this.dx = 1.0;  // Spatial grid spacing
+
+        // Potential parameters
+        this.V0 = 0.1;  // Potential well depth
+        this.potentialType = 'harmonic';  // 'harmonic', 'coulomb', 'yukawa'
+      }
+
+      // ========================================
+      // FREE HAMILTONIAN: H₀ = -ℏ²/2m ∇² + V(x)
+      // ========================================
+
+      // Kinetic energy operator: T = -ℏ²/2m ∇²
+      kineticEnergy(field, position, blackHoles) {
+        const hbar2_over_2m = (this.constants.HBAR_SCALED ** 2) / (2 * this.constants.M_SCALED);
+
+        // Discrete Laplacian: ∇²f ≈ (f(x+dx) + f(x-dx) - 2f(x)) / dx²
+        // In 3D: ∇² = ∂²/∂x² + ∂²/∂y² + ∂²/∂z²
+        const laplacian = this.computeLaplacian(field, position, blackHoles);
+
+        return -hbar2_over_2m * laplacian;
+      }
+
+      // Laplacian calculation using neighboring black holes
+      computeLaplacian(field, position, blackHoles) {
+        if (blackHoles.length < 2) return 0;
+
+        let laplacian = 0;
+        let neighbors = 0;
+
+        // Find neighboring black holes for finite difference
+        blackHoles.forEach(bh => {
+          const dx = bh.position.x - position.x;
+          const dy = bh.position.y - position.y;
+          const dz = bh.position.z - position.z;
+          const r = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+          // Only use nearby neighbors (within 2x grid spacing)
+          if (r > 0.1 && r < this.dx * 2) {
+            const fieldAtNeighbor = field.values.get(bh);
+            const fieldAtCenter = field.values.get(position);
+
+            if (fieldAtNeighbor !== undefined && fieldAtCenter !== undefined) {
+              // Approximate Laplacian using neighbor
+              // ∇²f ≈ (f_neighbor - f_center) / r²
+              let diff;
+              if (typeof fieldAtNeighbor === 'object' && fieldAtNeighbor.magnitude !== undefined) {
+                // Complex field (ψ)
+                diff = fieldAtNeighbor.magnitude - fieldAtCenter.magnitude;
+              } else {
+                // Real field (φ, τ, υ, χ, ρ, Ω)
+                diff = fieldAtNeighbor - fieldAtCenter;
+              }
+
+              laplacian += diff / (r * r);
+              neighbors++;
+            }
+          }
+        });
+
+        return neighbors > 0 ? laplacian / neighbors : 0;
+      }
+
+      // Potential energy: V(x)
+      potentialEnergy(position, blackHoles) {
+        let V = 0;
+
+        blackHoles.forEach(bh => {
+          const dx = position.x - bh.position.x;
+          const dy = position.y - bh.position.y;
+          const dz = position.z - bh.position.z;
+          const r = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+          if (r < 0.1) return; // Skip self
+
+          switch (this.potentialType) {
+            case 'harmonic':
+              // V = ½kx² (harmonic oscillator)
+              V += 0.5 * this.V0 * r * r;
+              break;
+
+            case 'coulomb':
+              // V = -1/r (attractive Coulomb)
+              V += -this.V0 / Math.max(r, 0.1);
+              break;
+
+            case 'yukawa':
+              // V = -e^(-μr)/r (screened Coulomb)
+              const mu = 0.5;  // Screening parameter
+              V += -this.V0 * Math.exp(-mu * r) / Math.max(r, 0.1);
+              break;
+          }
+        });
+
+        return V;
+      }
+
+      // Free Hamiltonian: H₀ = T + V
+      freeHamiltonian(field, position, blackHoles) {
+        const T = this.kineticEnergy(field, position, blackHoles);
+        const V = this.potentialEnergy(position, blackHoles);
+        return T + V;
+      }
+
+      // ========================================
+      // INTERACTION HAMILTONIAN: H_int = Σ g_ij φ_i·φ_j
+      // ========================================
+
+      interactionHamiltonian(bh) {
+        let H_int = 0;
+
+        // Get field values at this black hole
+        const psi = this.fields.psi.values.get(bh);
+        const phi = this.fields.phi.values.get(bh);
+        const chi = this.fields.chi.values.get(bh);
+        const upsilon = this.fields.upsilon.values.get(bh);
+        const tau = this.fields.tau.values.get(bh);
+        const rho = this.fields.rho.values.get(bh);
+        const omega = this.fields.omega.values.get(bh);
+
+        if (!psi || phi === undefined) return 0;
+
+        // 1. ψ-φ interaction: g_ψφ·|ψ|²·φ
+        const psi_mag = psi.magnitude || 0;
+        H_int += this.constants.G_PHI_PSI * psi_mag * psi_mag * phi;
+
+        // 2. ψ-χ interaction: g_ψχ·|ψ|·χ
+        if (chi !== undefined) {
+          H_int += this.constants.G_PSI_CHI * psi_mag * chi;
+        }
+
+        // 3. φ-υ interaction: g_φυ·φ·υ
+        if (upsilon !== undefined) {
+          H_int += this.constants.G_PHI_UPSILON * phi * upsilon;
+        }
+
+        // 4. τ-ρ interaction: g_τρ·τ·ρ
+        if (tau !== undefined && rho !== undefined) {
+          H_int += this.constants.G_TAU_RHO * tau * rho;
+        }
+
+        // 5. Ω-χ interaction: g_Ωχ·|Ω|·χ
+        if (omega !== undefined && chi !== undefined) {
+          const omega_mag = Math.sqrt(omega.x**2 + omega.y**2 + omega.z**2);
+          H_int += this.constants.G_OMEGA_CHI * omega_mag * chi;
+        }
+
+        // 6. Self-interactions (quartic terms)
+        // φ⁴ interaction: λ_φ·φ⁴
+        H_int += this.constants.LAMBDA_PHI * phi * phi * phi * phi;
+
+        // ψ⁴ interaction: λ_ψ·|ψ|⁴
+        H_int += this.constants.LAMBDA_PSI * psi_mag * psi_mag * psi_mag * psi_mag;
+
+        return H_int;
+      }
+
+      // ========================================
+      // TOTAL HAMILTONIAN: H = H₀ + H_int
+      // ========================================
+
+      totalHamiltonian(field, bh, blackHoles) {
+        const H0 = this.freeHamiltonian(field, bh.position, blackHoles);
+        const Hint = this.interactionHamiltonian(bh);
+        return H0 + Hint;
+      }
+
+      // ========================================
+      // TIME EVOLUTION: ∂ψ/∂t = iℏHψ
+      // ========================================
+      // Schrödinger equation integration
+      //
+      evolveWavefunction(bh, blackHoles, dt) {
+        const psi_current = this.fields.psi.values.get(bh);
+        if (!psi_current) return;
+
+        // Calculate Hamiltonian expectation value
+        const H_psi = this.totalHamiltonian(this.fields.psi, bh, blackHoles);
+
+        // Time evolution: ψ(t+dt) = ψ(t) + dt·(iℏH)ψ(t)
+        // (iℏH)ψ = i·ℏ·H·ψ = i·ℏ·H·|ψ|e^(iθ)
+
+        const hbar = this.constants.HBAR_SCALED;
+
+        // Phase evolution: dθ/dt = H/ℏ (from E = ℏω)
+        const dPhase_dt = H_psi / hbar;
+        const newPhase = (psi_current.phase + dPhase_dt * dt) % (2 * Math.PI);
+
+        // Magnitude evolution (from normalization + dissipation)
+        // For now, keep magnitude fixed (unitary evolution)
+        // Could add: d|ψ|/dt = -γ|ψ| for damping
+        const newMagnitude = psi_current.magnitude;
+
+        // Update wavefunction
+        this.fields.psi.values.set(bh, {
+          magnitude: newMagnitude,
+          phase: newPhase
+        });
+      }
+
+      // Evolve scalar field (real-valued)
+      evolveScalarField(field, bh, blackHoles, dt) {
+        const phi_current = field.values.get(bh);
+        if (phi_current === undefined) return;
+
+        // Calculate Hamiltonian for scalar field
+        const H_phi = this.totalHamiltonian(field, bh, blackHoles);
+
+        // For real scalar field: Klein-Gordon equation
+        // □φ + m²φ = source
+        // Approximation: dφ/dt ∝ -H·φ
+        const dPhi_dt = -H_phi * phi_current * dt * 0.01;  // Small coupling
+
+        const newPhi = phi_current + dPhi_dt;
+        field.values.set(bh, newPhi);
+      }
+
+      // ========================================
+      // MAIN UPDATE: Evolve all fields
+      // ========================================
+
+      update(blackHoles, dt) {
+        // 1. Evolve quantum wavefunction ψ (complex field)
+        blackHoles.forEach(bh => {
+          this.evolveWavefunction(bh, blackHoles, dt);
+        });
+
+        // 2. Evolve scalar field φ (real field)
+        blackHoles.forEach(bh => {
+          this.evolveScalarField(this.fields.phi, bh, blackHoles, dt);
+        });
+
+        // 3. Other fields (τ, υ, χ, Ω, ρ) keep their original dynamics
+        // They provide potentials and interactions for ψ and φ
+      }
+
+      // ========================================
+      // ENERGY CALCULATION
+      // ========================================
+
+      // Total energy: E = ⟨ψ|H|ψ⟩
+      totalEnergy(blackHoles) {
+        let E_total = 0;
+
+        blackHoles.forEach(bh => {
+          const psi = this.fields.psi.values.get(bh);
+          if (!psi) return;
+
+          // H·ψ
+          const H_psi = this.totalHamiltonian(this.fields.psi, bh, blackHoles);
+
+          // ⟨ψ|H|ψ⟩ = |ψ|²·H (for normalized states)
+          const psi_mag_squared = psi.magnitude * psi.magnitude;
+          E_total += psi_mag_squared * H_psi;
+        });
+
+        return E_total;
+      }
+
+      // Kinetic energy: ⟨T⟩ = ⟨ψ|(-ℏ²/2m ∇²)|ψ⟩
+      kineticEnergyExpectation(blackHoles) {
+        let T_total = 0;
+
+        blackHoles.forEach(bh => {
+          const psi = this.fields.psi.values.get(bh);
+          if (!psi) return;
+
+          const T = this.kineticEnergy(this.fields.psi, bh.position, blackHoles);
+          T_total += psi.magnitude * psi.magnitude * T;
+        });
+
+        return T_total;
+      }
+
+      // Potential energy: ⟨V⟩ = ⟨ψ|V|ψ⟩
+      potentialEnergyExpectation(blackHoles) {
+        let V_total = 0;
+
+        blackHoles.forEach(bh => {
+          const psi = this.fields.psi.values.get(bh);
+          if (!psi) return;
+
+          const V = this.potentialEnergy(bh.position, blackHoles);
+          V_total += psi.magnitude * psi.magnitude * V;
+        });
+
+        return V_total;
+      }
+    }
+
+    // ========================================
     // BLACK HOLE THERMODYNAMICS
     // ========================================
     
@@ -6188,6 +6594,7 @@
         // Initialize systems
         this.hilbertField = new HilbertFieldOperator();
         this.sevenFields = new SevenFieldSystem(); // 7-field quantum system (τ, υ, φ, χ, Ω, ρ, ψ)
+        this.hamiltonian = new HamiltonianOperator(this.sevenFields); // Hamiltonian quantum evolution ∂ψ/∂t = iℏHψ
         this.blackHole = new BlackHoleMetrics(1.0);
         this.dilationCalculator = new TimeDilationCalculator(this.blackHole);
         this.breathOperator = new BreathHilbertOperator();
@@ -8091,6 +8498,9 @@
             this.physicsWorld.wormholes,
             this.physicsWorld.particles
           );
+
+          // Apply Hamiltonian quantum evolution: ∂ψ/∂t = iℏHψ
+          this.hamiltonian.update(this.physicsWorld.blackHoles, deltaTime);
 
           // Step physics simulation (test particles + entropic forces)
           this.physicsWorld.step(Math.min(deltaTime, 1/30)); // Clamp to prevent instability
