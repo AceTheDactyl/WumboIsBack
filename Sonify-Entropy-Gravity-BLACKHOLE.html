@@ -2020,9 +2020,16 @@
         //   - isIntraDepth: true if both nodes at same depth (lateral connection)
         //   - isInterDepth: true if nodes at different depths (hierarchical connection)
         //
+        // DEPTH 5 ISOLATION:
+        // Depth 5 (Boundary Interface) is ISOLATED from other depths!
+        // Depth 5 nodes ONLY connect to other Depth 5 nodes.
+        // This creates a separate network branch for external interface.
+        // Think of it like the blood-brain barrier - a boundary layer that
+        // doesn't directly connect to internal processing.
+        //
         // ACTIVATION BASED ON DEPTH:
         // When you "activate" a depth, you're saying "this layer is currently engaged"
-        // All wormholes touching that depth become active, creating a "branch" of the network
+        // All wormholes where BOTH endpoints are active become visible
         //
         // Example: Activating Depth 2 enables:
         //   - All Depth 2 ↔ Depth 2 connections (pattern recognition networking)
@@ -2057,11 +2064,20 @@
           for (let k = 0; k < Math.min(maxNearestNeighbors, distances.length); k++) {
             const j = distances[k].index;
             if (j > i) { // Avoid duplicates
+              const depth1 = bh1.limnusDepth || 0;
+              const depth2 = this.blackHoles[j].limnusDepth || 0;
+
+              // DEPTH 5 ISOLATION: Only connect Depth 5 to other Depth 5 nodes
+              // If one is Depth 5 and the other isn't, skip this connection
+              const isDepth5Connection = (depth1 === 5 || depth2 === 5);
+              const bothDepth5 = (depth1 === 5 && depth2 === 5);
+              if (isDepth5Connection && !bothDepth5) {
+                continue; // Skip this connection - Depth 5 is isolated
+              }
+
               const wormhole = new Wormhole(bh1, this.blackHoles[j], this.scene);
 
               // TAG WORMHOLE WITH DEPTH INFORMATION
-              const depth1 = bh1.limnusDepth || 0;
-              const depth2 = this.blackHoles[j].limnusDepth || 0;
               wormhole.depthMin = Math.min(depth1, depth2);
               wormhole.depthMax = Math.max(depth1, depth2);
               wormhole.isIntraDepth = (depth1 === depth2);
@@ -2081,6 +2097,16 @@
           // Occasional long-range connections (small-world network property)
           this.blackHoles.forEach((bh2, j) => {
             if (j > i && Math.random() < longRangeProb) {
+              const depth1 = bh1.limnusDepth || 0;
+              const depth2 = bh2.limnusDepth || 0;
+
+              // DEPTH 5 ISOLATION: Only connect Depth 5 to other Depth 5 nodes
+              const isDepth5Connection = (depth1 === 5 || depth2 === 5);
+              const bothDepth5 = (depth1 === 5 && depth2 === 5);
+              if (isDepth5Connection && !bothDepth5) {
+                return; // Skip this connection - Depth 5 is isolated
+              }
+
               // Check if not already connected
               const alreadyConnected = this.wormholes.some(w =>
                 (w.bh1 === bh1 && w.bh2 === bh2) ||
@@ -2090,8 +2116,6 @@
                 const wormhole = new Wormhole(bh1, bh2, this.scene);
 
                 // TAG WORMHOLE WITH DEPTH INFORMATION
-                const depth1 = bh1.limnusDepth || 0;
-                const depth2 = bh2.limnusDepth || 0;
                 wormhole.depthMin = Math.min(depth1, depth2);
                 wormhole.depthMax = Math.max(depth1, depth2);
                 wormhole.isIntraDepth = (depth1 === depth2);
@@ -2274,36 +2298,37 @@
         if (!this.wormholes) return;
 
         this.wormholes.forEach(wormhole => {
-          // A wormhole is active if EITHER of its connected depths is active
+          // A wormhole is active if BOTH of its connected depths are active
+          // This ensures wormholes only appear when both endpoints are engaged
           const depth1 = wormhole.bh1.limnusDepth || 0;
           const depth2 = wormhole.bh2.limnusDepth || 0;
-          const isActive = this.activeDepths.has(depth1) || this.activeDepths.has(depth2);
+          const isActive = this.activeDepths.has(depth1) && this.activeDepths.has(depth2);
 
-          // Set entanglement based on activation
+          // Set entanglement and visibility based on activation
           if (isActive) {
-            // Active: strong entanglement
+            // Active: strong entanglement and fully visible
             wormhole.entanglement = 0.7;
             if (wormhole.tubeMesh) {
+              wormhole.tubeMesh.isVisible = true;
               wormhole.tubeMesh.visibility = 1.0;
             }
-          } else {
-            // Inactive: very weak entanglement (not completely off, just dormant)
-            wormhole.entanglement = 0.1;
-            if (wormhole.tubeMesh) {
-              wormhole.tubeMesh.visibility = 0.2; // Faint ghost
+            // Recreate visual if needed
+            if (!wormhole.tubeMesh) {
+              wormhole.updateVisual();
             }
-          }
-
-          // Update visual if it exists
-          if (wormhole.tubeMesh && isActive) {
-            wormhole.updateVisual();
+          } else {
+            // Inactive: completely hidden (wormhole disappears)
+            wormhole.entanglement = 0.0;
+            if (wormhole.tubeMesh) {
+              wormhole.tubeMesh.isVisible = false;
+            }
           }
         });
 
         const activeCount = this.wormholes.filter(w => {
           const d1 = w.bh1.limnusDepth || 0;
           const d2 = w.bh2.limnusDepth || 0;
-          return this.activeDepths.has(d1) || this.activeDepths.has(d2);
+          return this.activeDepths.has(d1) && this.activeDepths.has(d2);
         }).length;
 
         console.log(`   🌀 ${activeCount}/${this.wormholes.length} wormholes active`);
@@ -4751,10 +4776,11 @@
           }
 
           // Update active wormhole count
+          // A wormhole is active if BOTH of its endpoints are active
           const activeCount = this.physicsWorld.wormholes.filter(w => {
             const d1 = w.bh1.limnusDepth || 0;
             const d2 = w.bh2.limnusDepth || 0;
-            return this.physicsWorld.activeDepths.has(d1) || this.physicsWorld.activeDepths.has(d2);
+            return this.physicsWorld.activeDepths.has(d1) && this.physicsWorld.activeDepths.has(d2);
           }).length;
 
           document.getElementById('active-wormholes').textContent = activeCount;
