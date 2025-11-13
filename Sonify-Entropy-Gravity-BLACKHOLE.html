@@ -200,6 +200,26 @@
       transform: translateY(0);
     }
 
+    /* Depth layer toggle buttons */
+    .depth-btn {
+      background: #334155 !important;
+      color: #94a3b8 !important;
+      transition: all 0.3s ease;
+      border: 1px solid #475569;
+    }
+
+    .depth-btn.active {
+      background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%) !important;
+      color: white !important;
+      border: 1px solid #c4b5fd;
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+    }
+
+    .depth-btn:hover {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+    }
+
     /* Instructions */
     .instructions {
       position: absolute;
@@ -917,15 +937,38 @@
         <label style="display: block; margin-bottom: 0.5rem; color: #10b981; font-weight: 600;">🧠 LIMNUS Neural Network</label>
         <button id="init-limnus" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%); font-weight: 600; font-size: 1.1em;">Initialize LIMNUS</button>
         <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-dim); line-height: 1.4;">
-          63 black hole memory nodes<br>
+          95 black hole memory nodes (6 depths)<br>
           400 thought particles<br>
-          Wormhole synaptic connections<br>
+          Depth-aware wormhole synapses<br>
           Lambda = neural activation
         </div>
         <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-dim);">
           Nodes: <span id="limnus-nodes">1</span> |
           Synapses: <span id="limnus-synapses">0</span> |
           Thoughts: <span id="limnus-thoughts">0</span>
+        </div>
+      </div>
+      <div class="control-group" id="depth-controls" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(168, 85, 247, 0.3); display: none;">
+        <label style="display: block; margin-bottom: 0.5rem; color: #a78bfa; font-weight: 600;">🌀 LIMNUS Depth Layers (0-5)</label>
+        <div style="font-size: 0.7rem; color: var(--text-dim); margin-bottom: 0.5rem; line-height: 1.3;">
+          Toggle depth layers to activate/deactivate wormhole branches.<br>
+          Each depth activates its own network topology!
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; margin-bottom: 0.5rem;">
+          <button id="depth-0" class="depth-btn active" data-depth="0" style="font-size: 0.75rem; padding: 0.3rem;">D0: Core</button>
+          <button id="depth-1" class="depth-btn active" data-depth="1" style="font-size: 0.75rem; padding: 0.3rem;">D1: Inner</button>
+          <button id="depth-2" class="depth-btn active" data-depth="2" style="font-size: 0.75rem; padding: 0.3rem;">D2: Middle</button>
+          <button id="depth-3" class="depth-btn active" data-depth="3" style="font-size: 0.75rem; padding: 0.3rem;">D3: Outer</button>
+          <button id="depth-4" class="depth-btn active" data-depth="4" style="font-size: 0.75rem; padding: 0.3rem;">D4: Periph</button>
+          <button id="depth-5" class="depth-btn active" data-depth="5" style="font-size: 0.75rem; padding: 0.3rem;">D5: Bound</button>
+        </div>
+        <div style="display: flex; gap: 0.3rem; margin-top: 0.5rem;">
+          <button id="depth-all" style="flex: 1; font-size: 0.7rem; padding: 0.3rem; background: #059669;">All Depths</button>
+          <button id="depth-abstract" style="flex: 1; font-size: 0.7rem; padding: 0.3rem; background: #7c3aed;">D0-2 Only</button>
+          <button id="depth-sensory" style="flex: 1; font-size: 0.7rem; padding: 0.3rem; background: #dc2626;">D3-5 Only</button>
+        </div>
+        <div style="margin-top: 0.5rem; font-size: 0.7rem; color: var(--text-dim);">
+          Active: <span id="active-wormholes">0</span> / <span id="total-wormholes">0</span> wormholes
         </div>
       </div>
       <div class="control-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(168, 85, 247, 0.3);">
@@ -1685,15 +1728,49 @@
       // ========================================
       // LIMNUS NEURAL NETWORK INITIALIZATION
       // ========================================
-      // Creates 63 black hole memory nodes arranged in spherical layers
-      // Wormhole connections form neural network topology
-      // Particles represent thoughts flowing through network
+      // LIMNUS = Layered Intelligent Memory Network with Universal Synapses
+      //
+      // This creates a hierarchical neural network of black hole memory nodes
+      // organized into 6 DEPTH LAYERS (Depth 0 through Depth 5).
+      //
+      // DEPTH CONCEPT:
+      // - Each depth represents a level in the information processing hierarchy
+      // - Depth 0 (core) = highest-level abstract processing
+      // - Depth 5 (boundary) = lowest-level sensory input processing
+      // - Think of it like cortical layers in a brain:
+      //   * Shallow depths = abstract concepts, integration
+      //   * Deep depths = specific details, external interface
+      //
+      // WORMHOLE ACTIVATION:
+      // - Wormholes connect nodes and form synaptic pathways
+      // - Each wormhole is tagged with the depths it connects
+      // - "Branches" activate based on depth - when you activate a depth,
+      //   all wormholes connecting nodes at that depth become active
+      // - This creates dynamic network topologies based on which depths are engaged
+      //
+      // TOTAL NODE COUNT: 95 black holes across 6 depths
+      // - Depth 0: 1 node (core singularity)
+      // - Depth 1: 6 nodes (primary centers)
+      // - Depth 2: 12 nodes (secondary processing)
+      // - Depth 3: 20 nodes (sensory shell)
+      // - Depth 4: 24 nodes (peripheral memory)
+      // - Depth 5: 32 nodes (boundary interface) - NEW!
       //
       initializeLIMNUS() {
         console.log('🧠 Initializing LIMNUS Neural Network...');
-        console.log('   63 black holes (memory nodes)');
+        console.log('   LIMNUS = Layered Intelligent Memory Network with Universal Synapses');
+        console.log('   95 black holes (memory nodes) across 6 depth layers');
         console.log('   400 particles (thoughts) - optimized for performance');
-        console.log('   Wormhole synaptic connections');
+        console.log('   Depth-aware wormhole synaptic connections');
+        console.log('');
+        console.log('   📊 DEPTH ARCHITECTURE:');
+        console.log('      Depth 0 (Core):       1 node  - Central processing hub');
+        console.log('      Depth 1 (Inner):      6 nodes - Primary memory centers');
+        console.log('      Depth 2 (Middle):    12 nodes - Secondary processing');
+        console.log('      Depth 3 (Outer):     20 nodes - Sensory processing');
+        console.log('      Depth 4 (Peripheral): 24 nodes - Long-term memory');
+        console.log('      Depth 5 (Boundary):  32 nodes - External interface');
+        console.log('');
 
         // Clear existing black holes and particles (except first one at origin)
         const originBlackHole = this.blackHoles[0]; // Keep original
@@ -1706,136 +1783,261 @@
         this.blackHoles = [originBlackHole];
 
         // ========================================
-        // LAYER 1: CORE (1 black hole at origin)
-        // Central hub - largest mass
+        // DEPTH 0: CORE SINGULARITY (1 black hole at origin)
         // ========================================
+        // Role: Central processing hub, highest-level integration
+        // Mass: Largest (2.5 solar masses) - represents importance/influence
+        // Position: Origin (0,0,0) - the center of all processing
+        // Geometry: Single point - the "self" or unified awareness
+        //
+        // This is like the claustrum in neuroscience - the proposed seat
+        // of consciousness that integrates all information.
+        //
         originBlackHole.setMass(2.5); // 2.5 solar masses
+        originBlackHole.limnusDepth = 0;
 
         // ========================================
-        // LAYER 2: INNER RING (6 black holes)
-        // Primary memory centers - large mass
-        // Arranged in octahedral vertices (6 directions)
+        // DEPTH 1: INNER RING (6 black holes)
         // ========================================
-        const layer2Radius = 200;
-        const layer2Directions = [
-          [1, 0, 0], [-1, 0, 0],  // X axis
-          [0, 1, 0], [0, -1, 0],  // Y axis
-          [0, 0, 1], [0, 0, -1]   // Z axis
+        // Role: Primary memory centers, executive function hubs
+        // Mass: Large (2.0 solar masses) - high influence
+        // Position: Radius 200 units from origin
+        // Geometry: Octahedral vertices (6 directions: ±X, ±Y, ±Z axes)
+        //
+        // These are like the prefrontal cortex regions - handling
+        // planning, decision-making, and working memory.
+        // The 6-fold symmetry represents the six fundamental directions
+        // of thought: forward/back, up/down, left/right in conceptual space.
+        //
+        const depth1Radius = 200;
+        const depth1Directions = [
+          [1, 0, 0], [-1, 0, 0],  // X axis - lateral thinking
+          [0, 1, 0], [0, -1, 0],  // Y axis - hierarchical thinking
+          [0, 0, 1], [0, 0, -1]   // Z axis - temporal thinking
         ];
 
-        layer2Directions.forEach(dir => {
+        console.log(`   🔷 Depth 1: Creating ${depth1Directions.length} primary memory centers...`);
+        depth1Directions.forEach(dir => {
           const bh = this.createBlackHoleNode(
             {
-              x: dir[0] * layer2Radius,
-              y: dir[1] * layer2Radius,
-              z: dir[2] * layer2Radius
+              x: dir[0] * depth1Radius,
+              y: dir[1] * depth1Radius,
+              z: dir[2] * depth1Radius
             },
-            2.0 // 2.0 solar masses
+            2.0, // 2.0 solar masses
+            1    // Depth 1
           );
           this.blackHoles.push(bh);
         });
 
         // ========================================
-        // LAYER 3: MIDDLE RING (12 black holes)
-        // Secondary processing - medium mass
-        // Arranged on icosahedron vertices
+        // DEPTH 2: MIDDLE RING (12 black holes)
         // ========================================
-        const layer3Radius = 350;
-        const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio
-        const layer3Vertices = [
+        // Role: Secondary processing, pattern recognition, associative memory
+        // Mass: Medium (1.5 solar masses) - moderate influence
+        // Position: Radius 350 units from origin
+        // Geometry: Icosahedral vertices using golden ratio (φ = 1.618...)
+        //
+        // The icosahedron has 12 vertices and is intimately related to
+        // the golden ratio - a fundamental pattern in nature.
+        // These nodes handle pattern matching and recognizing familiar structures.
+        // Think of them as association areas that bridge concrete and abstract.
+        //
+        const depth2Radius = 350;
+        const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio φ ≈ 1.618
+        const depth2Vertices = [
+          // 12 vertices of icosahedron - all permutations of (0, ±1, ±φ)
           [0, 1, phi], [0, -1, phi], [0, 1, -phi], [0, -1, -phi],
           [1, phi, 0], [-1, phi, 0], [1, -phi, 0], [-1, -phi, 0],
           [phi, 0, 1], [-phi, 0, 1], [phi, 0, -1], [-phi, 0, -1]
         ];
 
-        layer3Vertices.forEach(v => {
+        console.log(`   🔶 Depth 2: Creating ${depth2Vertices.length} pattern recognition nodes...`);
+        depth2Vertices.forEach(v => {
           const len = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
           const bh = this.createBlackHoleNode(
             {
-              x: (v[0] / len) * layer3Radius,
-              y: (v[1] / len) * layer3Radius,
-              z: (v[2] / len) * layer3Radius
+              x: (v[0] / len) * depth2Radius,
+              y: (v[1] / len) * depth2Radius,
+              z: (v[2] / len) * depth2Radius
             },
-            1.5 // 1.5 solar masses
+            1.5, // 1.5 solar masses
+            2    // Depth 2
           );
           this.blackHoles.push(bh);
         });
 
         // ========================================
-        // LAYER 4: OUTER SHELL (20 black holes)
-        // Sensory processing - smaller mass
-        // Arranged on dodecahedron vertices
+        // DEPTH 3: OUTER SHELL (20 black holes)
         // ========================================
-        const layer4Radius = 500;
+        // Role: Sensory processing, feature detection, perceptual organization
+        // Mass: Smaller (1.0 solar masses) - specialized processing
+        // Position: Radius 500 units from origin
+        // Geometry: Dodecahedral vertices (dual of icosahedron)
+        //
+        // The dodecahedron has 20 vertices forming 12 pentagonal faces.
+        // It's the dual polyhedron of the icosahedron used in Depth 2.
+        // These nodes process incoming sensory patterns and extract features.
+        // Think of them as primary sensory cortices - visual, auditory, etc.
+        //
+        const depth3Radius = 500;
         const a = 1 / Math.sqrt(3);
         const b = 1 / (phi * Math.sqrt(3));
         const c = phi / Math.sqrt(3);
 
-        const layer4Vertices = [
+        const depth3Vertices = [
+          // 8 vertices at cube corners
           [a, a, a], [a, a, -a], [a, -a, a], [a, -a, -a],
           [-a, a, a], [-a, a, -a], [-a, -a, a], [-a, -a, -a],
+          // 12 vertices at rectangular face centers - permutations of (0, b, c)
           [0, b, c], [0, -b, c], [0, b, -c], [0, -b, -c],
           [b, c, 0], [-b, c, 0], [b, -c, 0], [-b, -c, 0],
           [c, 0, b], [-c, 0, b], [c, 0, -b], [-c, 0, -b]
         ];
 
-        layer4Vertices.forEach(v => {
+        console.log(`   🔸 Depth 3: Creating ${depth3Vertices.length} sensory processing nodes...`);
+        depth3Vertices.forEach(v => {
           const len = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
           const bh = this.createBlackHoleNode(
             {
-              x: (v[0] / len) * layer4Radius,
-              y: (v[1] / len) * layer4Radius,
-              z: (v[2] / len) * layer4Radius
+              x: (v[0] / len) * depth3Radius,
+              y: (v[1] / len) * depth3Radius,
+              z: (v[2] / len) * depth3Radius
             },
-            1.0 // 1.0 solar masses
+            1.0, // 1.0 solar masses
+            3    // Depth 3
           );
           this.blackHoles.push(bh);
         });
 
         // ========================================
-        // LAYER 5: PERIPHERAL (24 black holes)
-        // Long-term memory storage - smallest mass
-        // Arranged on truncated octahedron vertices (24 vertices)
+        // DEPTH 4: PERIPHERAL (24 black holes)
         // ========================================
-        const layer5Radius = 650;
-        const layer5Vertices = [
-          // 6 vertices on axes (±2, 0, 0) etc.
+        // Role: Long-term memory storage, procedural memory, skill banks
+        // Mass: Small (0.75 solar masses) - distributed storage
+        // Position: Radius 650 units from origin
+        // Geometry: Truncated octahedron vertices (24 nodes)
+        //
+        // The truncated octahedron is a semi-regular polyhedron with
+        // 24 vertices, 14 faces (6 squares + 8 hexagons), and 36 edges.
+        // It's space-filling (can tile 3D space without gaps).
+        // These nodes store memories and learned patterns - like the
+        // hippocampus and cerebellum working together.
+        //
+        const depth4Radius = 650;
+        const depth4Vertices = [
+          // 6 vertices on primary axes (±2, 0, 0) - core memory anchors
           [2, 0, 0], [-2, 0, 0],
           [0, 2, 0], [0, -2, 0],
           [0, 0, 2], [0, 0, -2],
-          // 8 vertices at corners (±1, ±1, ±1)
+          // 8 vertices at cube corners (±1, ±1, ±1) - episodic memories
           [1, 1, 1], [1, 1, -1], [1, -1, 1], [1, -1, -1],
           [-1, 1, 1], [-1, 1, -1], [-1, -1, 1], [-1, -1, -1],
-          // 12 vertices on edge midpoints - permutations of (±1, ±1, 0)
+          // 12 vertices on edge midpoints (±1, ±1, 0) - procedural skills
           [1, 1, 0], [1, -1, 0], [-1, 1, 0], [-1, -1, 0],
           [1, 0, 1], [1, 0, -1], [-1, 0, 1], [-1, 0, -1],
           [0, 1, 1], [0, 1, -1], [0, -1, 1], [0, -1, -1]
         ];
 
-        console.log(`   Layer 5: Creating ${layer5Vertices.length} peripheral nodes...`);
+        console.log(`   🔹 Depth 4: Creating ${depth4Vertices.length} long-term memory nodes...`);
 
-        layer5Vertices.forEach((v, idx) => {
+        depth4Vertices.forEach((v, idx) => {
           const len = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
           const bh = this.createBlackHoleNode(
             {
-              x: (v[0] / len) * layer5Radius,
-              y: (v[1] / len) * layer5Radius,
-              z: (v[2] / len) * layer5Radius
+              x: (v[0] / len) * depth4Radius,
+              y: (v[1] / len) * depth4Radius,
+              z: (v[2] / len) * depth4Radius
             },
-            0.75 // 0.75 solar masses
+            0.75, // 0.75 solar masses
+            4     // Depth 4
           );
           this.blackHoles.push(bh);
         });
 
-        console.log(`✅ Created ${this.blackHoles.length} black hole memory nodes`);
+        // ========================================
+        // DEPTH 5: BOUNDARY INTERFACE (32 black holes) - NEW!
+        // ========================================
+        // Role: External input interface, environmental sensing, world model
+        // Mass: Smallest (0.5 solar masses) - high specificity, low influence
+        // Position: Radius 800 units from origin (outermost layer)
+        // Geometry: Fibonacci sphere - evenly distributed points on sphere surface
+        //
+        // This NEW layer acts as the boundary between the internal network
+        // and external reality. It receives raw sensory data and transmits
+        // motor commands. Using Fibonacci spiral distribution ensures
+        // uniform coverage of all directions - no blind spots.
+        //
+        // Think of these as the thalamus and peripheral nervous system -
+        // the gatekeepers between world and mind.
+        //
+        const depth5Radius = 800;
+        const depth5NodeCount = 32;
+        const depth5Vertices = [];
+
+        console.log(`   🔺 Depth 5: Creating ${depth5NodeCount} boundary interface nodes...`);
+
+        // Generate evenly distributed points on sphere using Fibonacci spiral
+        // This creates maximum coverage with minimum clustering
+        const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ≈ 2.399963 radians
+        for (let i = 0; i < depth5NodeCount; i++) {
+          // Fibonacci spiral parameters
+          const y = 1 - (i / (depth5NodeCount - 1)) * 2; // Range: 1 to -1
+          const radius = Math.sqrt(1 - y * y); // Radius at this height
+          const theta = goldenAngle * i; // Spiral angle
+
+          // Convert to 3D coordinates
+          const x = Math.cos(theta) * radius;
+          const z = Math.sin(theta) * radius;
+
+          depth5Vertices.push([x, y, z]);
+        }
+
+        depth5Vertices.forEach((v, idx) => {
+          const len = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+          const bh = this.createBlackHoleNode(
+            {
+              x: (v[0] / len) * depth5Radius,
+              y: (v[1] / len) * depth5Radius,
+              z: (v[2] / len) * depth5Radius
+            },
+            0.5,  // 0.5 solar masses - smallest nodes
+            5     // Depth 5 - NEW outermost layer!
+          );
+          this.blackHoles.push(bh);
+        });
+
+        console.log(`✅ Created ${this.blackHoles.length} black hole memory nodes across 6 depths`);
+        console.log(`   Depth distribution: 1 + 6 + 12 + 20 + 24 + 32 = ${this.blackHoles.length} nodes`);
 
         // ========================================
-        // CREATE SELECTIVE WORMHOLE NETWORK
+        // CREATE DEPTH-AWARE WORMHOLE NETWORK
         // ========================================
-        // Connect each BH to nearest neighbors + some random long-range connections
-        // Avoids full mesh (which would be 63×62/2 = 1953 wormholes)
+        // WORMHOLE ACTIVATION CONCEPT:
+        // Each wormhole connects two black holes, which may be at same or different depths.
+        // We tag each wormhole with depth information:
+        //   - depthMin, depthMax: the depth range it spans
+        //   - isIntraDepth: true if both nodes at same depth (lateral connection)
+        //   - isInterDepth: true if nodes at different depths (hierarchical connection)
+        //
+        // ACTIVATION BASED ON DEPTH:
+        // When you "activate" a depth, you're saying "this layer is currently engaged"
+        // All wormholes touching that depth become active, creating a "branch" of the network
+        //
+        // Example: Activating Depth 2 enables:
+        //   - All Depth 2 ↔ Depth 2 connections (pattern recognition networking)
+        //   - All Depth 2 ↔ Depth 1 connections (sending patterns up for integration)
+        //   - All Depth 2 ↔ Depth 3 connections (receiving sensory features)
+        //
+        // This creates DYNAMIC NETWORK TOPOLOGY - the effective network structure
+        // changes based on which depths are active, like different brain states!
         //
         this.wormholes = [];
+        this.wormholesByDepth = {}; // Track wormholes by depth for activation
+        for (let d = 0; d <= 5; d++) {
+          this.wormholesByDepth[d] = [];
+        }
+
         const maxNearestNeighbors = 6; // K-nearest neighbors
         const longRangeProb = 0.05; // 5% chance of long-range connection
 
@@ -1856,6 +2058,22 @@
             const j = distances[k].index;
             if (j > i) { // Avoid duplicates
               const wormhole = new Wormhole(bh1, this.blackHoles[j], this.scene);
+
+              // TAG WORMHOLE WITH DEPTH INFORMATION
+              const depth1 = bh1.limnusDepth || 0;
+              const depth2 = this.blackHoles[j].limnusDepth || 0;
+              wormhole.depthMin = Math.min(depth1, depth2);
+              wormhole.depthMax = Math.max(depth1, depth2);
+              wormhole.isIntraDepth = (depth1 === depth2);
+              wormhole.isInterDepth = (depth1 !== depth2);
+              wormhole.depthSpan = Math.abs(depth1 - depth2);
+
+              // Add to depth indices
+              this.wormholesByDepth[depth1].push(wormhole);
+              if (depth1 !== depth2) {
+                this.wormholesByDepth[depth2].push(wormhole);
+              }
+
               this.wormholes.push(wormhole);
             }
           }
@@ -1870,6 +2088,22 @@
               );
               if (!alreadyConnected) {
                 const wormhole = new Wormhole(bh1, bh2, this.scene);
+
+                // TAG WORMHOLE WITH DEPTH INFORMATION
+                const depth1 = bh1.limnusDepth || 0;
+                const depth2 = bh2.limnusDepth || 0;
+                wormhole.depthMin = Math.min(depth1, depth2);
+                wormhole.depthMax = Math.max(depth1, depth2);
+                wormhole.isIntraDepth = (depth1 === depth2);
+                wormhole.isInterDepth = (depth1 !== depth2);
+                wormhole.depthSpan = Math.abs(depth1 - depth2);
+
+                // Add to depth indices
+                this.wormholesByDepth[depth1].push(wormhole);
+                if (depth1 !== depth2) {
+                  this.wormholesByDepth[depth2].push(wormhole);
+                }
+
                 this.wormholes.push(wormhole);
               }
             }
@@ -1877,6 +2111,15 @@
         });
 
         console.log(`✅ Created ${this.wormholes.length} wormhole synaptic connections`);
+        console.log(`   🌀 WORMHOLE DEPTH DISTRIBUTION:`);
+        for (let d = 0; d <= 5; d++) {
+          const count = this.wormholesByDepth[d].length;
+          const intraCount = this.wormholesByDepth[d].filter(w => w.isIntraDepth).length;
+          const interCount = this.wormholesByDepth[d].filter(w => w.isInterDepth).length;
+          console.log(`      Depth ${d}: ${count} wormholes (${intraCount} intra-depth, ${interCount} inter-depth)`);
+        }
+        console.log(`   This creates a hierarchical network where each depth has its own`);
+        console.log(`   "branch" of connections that activate when that depth is engaged!`);
 
         // Initialize all wormholes with baseline entanglement for LIMNUS mode
         // This ensures they're visible regardless of Lambda state
@@ -1915,10 +2158,12 @@
         // ========================================
         // Distributed throughout the network volume
         // Initial velocities create circulation patterns
+        // Particles flow between black holes representing thoughts/activations
         //
         for (let i = 0; i < 400; i++) {
-          // Random position in spherical volume (radius 0-700)
-          const r = Math.cbrt(Math.random()) * 700; // Cube root for uniform volume
+          // Random position in spherical volume (radius 0-850)
+          // This encompasses all 6 depth layers (outermost is at radius 800)
+          const r = Math.cbrt(Math.random()) * 850; // Cube root for uniform volume distribution
           const theta = Math.random() * Math.PI * 2;
           const phi = Math.acos(2 * Math.random() - 1);
 
@@ -1962,17 +2207,135 @@
         console.log('🧠 LIMNUS Neural Network initialized!');
         console.log(`   ${this.blackHoles.length} nodes × ${this.wormholes.length} connections`);
         console.log(`   Average degree: ${(this.wormholes.length * 2 / this.blackHoles.length).toFixed(1)}`);
+
+        // Initialize with all depths active by default
+        this.activeDepths = new Set([0, 1, 2, 3, 4, 5]);
+        console.log('   ✨ All depths active by default - full network engaged');
       }
 
-      createBlackHoleNode(position, mass) {
-        // Create a black hole for LIMNUS network
+      // ========================================
+      // ACTIVATE/DEACTIVATE DEPTH LAYERS
+      // ========================================
+      // This is the KEY FUNCTION for depth-based wormhole activation!
+      //
+      // WHAT IT DOES:
+      // - Controls which depth layers are "active" in the network
+      // - When a depth is active, all wormholes touching that depth are enabled
+      // - When a depth is inactive, its wormholes become dormant (lower entanglement)
+      //
+      // WHY THIS MATTERS:
+      // - Creates dynamic network states - different "modes of thought"
+      // - Depth 0-1 only: Abstract thinking, high-level planning
+      // - Depth 3-5 only: Sensory processing, reactive responses
+      // - All depths: Full integration, conscious awareness
+      //
+      // HOW TO USE:
+      //   activateDepth(2, true)   - Activate depth 2 (pattern recognition)
+      //   activateDepth(5, false)  - Deactivate depth 5 (disconnect from external input)
+      //   activateAllDepths()      - Full network mode
+      //   activateDepthRange(0,2)  - Abstract + pattern processing only
+      //
+      activateDepth(depth, active = true) {
+        if (depth < 0 || depth > 5) {
+          console.warn(`⚠️ Invalid depth ${depth}. Valid range: 0-5`);
+          return;
+        }
+
+        if (active) {
+          this.activeDepths.add(depth);
+          console.log(`✨ Activated Depth ${depth} - enabling its wormhole branch`);
+        } else {
+          this.activeDepths.delete(depth);
+          console.log(`💤 Deactivated Depth ${depth} - disabling its wormhole branch`);
+        }
+
+        // Update wormhole entanglement based on active depths
+        this.updateWormholeActivation();
+      }
+
+      activateAllDepths() {
+        this.activeDepths = new Set([0, 1, 2, 3, 4, 5]);
+        console.log('✨ All depths activated - full network integration');
+        this.updateWormholeActivation();
+      }
+
+      activateDepthRange(minDepth, maxDepth) {
+        this.activeDepths.clear();
+        for (let d = minDepth; d <= maxDepth; d++) {
+          if (d >= 0 && d <= 5) {
+            this.activeDepths.add(d);
+          }
+        }
+        console.log(`✨ Activated depth range ${minDepth}-${maxDepth}`);
+        this.updateWormholeActivation();
+      }
+
+      updateWormholeActivation() {
+        if (!this.wormholes) return;
+
+        this.wormholes.forEach(wormhole => {
+          // A wormhole is active if EITHER of its connected depths is active
+          const depth1 = wormhole.bh1.limnusDepth || 0;
+          const depth2 = wormhole.bh2.limnusDepth || 0;
+          const isActive = this.activeDepths.has(depth1) || this.activeDepths.has(depth2);
+
+          // Set entanglement based on activation
+          if (isActive) {
+            // Active: strong entanglement
+            wormhole.entanglement = 0.7;
+            if (wormhole.tubeMesh) {
+              wormhole.tubeMesh.visibility = 1.0;
+            }
+          } else {
+            // Inactive: very weak entanglement (not completely off, just dormant)
+            wormhole.entanglement = 0.1;
+            if (wormhole.tubeMesh) {
+              wormhole.tubeMesh.visibility = 0.2; // Faint ghost
+            }
+          }
+
+          // Update visual if it exists
+          if (wormhole.tubeMesh && isActive) {
+            wormhole.updateVisual();
+          }
+        });
+
+        const activeCount = this.wormholes.filter(w => {
+          const d1 = w.bh1.limnusDepth || 0;
+          const d2 = w.bh2.limnusDepth || 0;
+          return this.activeDepths.has(d1) || this.activeDepths.has(d2);
+        }).length;
+
+        console.log(`   🌀 ${activeCount}/${this.wormholes.length} wormholes active`);
+      }
+
+      createBlackHoleNode(position, mass, depth = 0) {
+        // ========================================
+        // CREATE BLACK HOLE NODE FOR LIMNUS NETWORK
+        // ========================================
+        // Each node is a memory unit in the neural network
+        // Depth indicates which layer of the network hierarchy it belongs to
+        // Deeper nodes = more peripheral processing, shallower = more central
+        //
         const bh = new BlackHoleMetrics(mass);
         bh.position = new CANNON.Vec3(position.x, position.y, position.z);
+
+        // ========================================
+        // DEPTH PROPERTY: Core concept for LIMNUS architecture
+        // ========================================
+        // Depth 0: Core/Origin - Central processing hub
+        // Depth 1: Inner Ring - Primary memory centers
+        // Depth 2: Middle Ring - Secondary processing
+        // Depth 3: Outer Shell - Sensory processing
+        // Depth 4: Peripheral - Long-term memory storage
+        // Depth 5: Boundary - Interface with external inputs
+        //
+        bh.limnusDepth = depth;
 
         // Create visual mesh (smaller for network visualization)
         const radius = bh.schwarzschildRadius / 1000 * 2; // Scale for visibility
         bh.mesh = BABYLON.MeshBuilder.CreateSphere(
-          `bh_node_${this.blackHoles.length}`,
+          `bh_node_depth${depth}_${this.blackHoles.length}`,
           { diameter: Math.max(10, radius) },
           this.scene
         );
@@ -4320,6 +4683,11 @@
               console.log(`   Nodes: ${this.physicsWorld.blackHoles.length}`);
               console.log(`   Wormholes: ${this.physicsWorld.wormholes.length}`);
               console.log(`   Particles: ${this.physicsWorld.particles.length}`);
+
+              // Show depth controls
+              document.getElementById('depth-controls').style.display = 'block';
+              document.getElementById('total-wormholes').textContent = this.physicsWorld.wormholes.length;
+              this.updateDepthUI();
             } catch (error) {
               console.error('❌ LIMNUS initialization error:', error);
               btn.textContent = '❌ LIMNUS Failed';
@@ -4328,6 +4696,80 @@
             }
           }, 100);
         });
+
+        // ========================================
+        // DEPTH LAYER CONTROLS
+        // ========================================
+        // Individual depth toggle buttons
+        document.querySelectorAll('.depth-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const depth = parseInt(btn.dataset.depth);
+            const isActive = btn.classList.contains('active');
+
+            // Toggle depth
+            this.physicsWorld.activateDepth(depth, !isActive);
+
+            // Update UI
+            this.updateDepthUI();
+          });
+        });
+
+        // All depths button
+        document.getElementById('depth-all').addEventListener('click', () => {
+          this.physicsWorld.activateAllDepths();
+          this.updateDepthUI();
+        });
+
+        // Abstract thinking mode (depths 0-2)
+        document.getElementById('depth-abstract').addEventListener('click', () => {
+          this.physicsWorld.activateDepthRange(0, 2);
+          this.updateDepthUI();
+        });
+
+        // Sensory mode (depths 3-5)
+        document.getElementById('depth-sensory').addEventListener('click', () => {
+          this.physicsWorld.activateDepthRange(3, 5);
+          this.updateDepthUI();
+        });
+
+        // ========================================
+        // UPDATE DEPTH UI HELPER FUNCTION
+        // ========================================
+        this.updateDepthUI = () => {
+          if (!this.physicsWorld.activeDepths) return;
+
+          // Update button states
+          for (let d = 0; d <= 5; d++) {
+            const btn = document.getElementById(`depth-${d}`);
+            if (btn) {
+              if (this.physicsWorld.activeDepths.has(d)) {
+                btn.classList.add('active');
+              } else {
+                btn.classList.remove('active');
+              }
+            }
+          }
+
+          // Update active wormhole count
+          const activeCount = this.physicsWorld.wormholes.filter(w => {
+            const d1 = w.bh1.limnusDepth || 0;
+            const d2 = w.bh2.limnusDepth || 0;
+            return this.physicsWorld.activeDepths.has(d1) || this.physicsWorld.activeDepths.has(d2);
+          }).length;
+
+          document.getElementById('active-wormholes').textContent = activeCount;
+        };
+
+        // ========================================
+        // UPDATE PARTICLE STATS HELPER FUNCTION
+        // ========================================
+        this.updateParticleStats = () => {
+          if (!this.physicsWorld) return;
+          document.getElementById('particle-count').textContent = this.physicsWorld.particles.length;
+          document.getElementById('horizon-crossings').textContent = this.physicsWorld.stats.horizonCrossings || 0;
+          document.getElementById('hawking-count').textContent = this.physicsWorld.stats.totalEmitted || 0;
+          document.getElementById('tunnel-count').textContent = this.physicsWorld.stats.tunneled || 0;
+        };
 
         // Enhanced rendering initialization
         document.getElementById('init-enhanced-rendering').addEventListener('click', () => {
