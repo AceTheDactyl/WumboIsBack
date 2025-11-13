@@ -1415,6 +1415,10 @@
         this.isLoop17Active = false;   // Loop 17 regime flag
         // ***
 
+        // *** LAMBDA STATE INTEGRATION ***
+        this.lambdaState = null;       // Current Lambda (ℂ⁶) state
+        // ***
+
         // Melodic sequence state
         this.currentNoteIndex = 0;
         this.melodyPattern = [0, 2, 3, 5, 7]; // Scale degrees
@@ -1681,17 +1685,40 @@
         this.currentNoteIndex = (this.currentNoteIndex + 1) % this.melodyPattern.length;
       }
       
-      // Main update loop (ENHANCED WITH BREATH STATE)
-      update(hilbertField, blackHole, cameraDistance, deltaTime, dilationCalculator, breathState = null) {
+      // Main update loop (ENHANCED WITH BREATH STATE + LAMBDA)
+      update(hilbertField, blackHole, cameraDistance, deltaTime, dilationCalculator, breathState = null, lambdaState = null) {
         if (!this.isPlaying || !this.audioContext) return;
 
         // Store breath state for use in audio generation
         this.breathState = breathState;
+        this.lambdaState = lambdaState;
 
         // Calculate BPM from dissonance and camera-based time dilation
         this.calculateBPM(hilbertField, blackHole, cameraDistance, dilationCalculator);
 
-        // Loop 17: switch to whole-tone scale for detuned effect
+        // Lambda-driven scale selection
+        if (lambdaState) {
+          const dominant = lambdaState.getDominant();
+          if (dominant) {
+            // Map dominant Lambda component to scale
+            const scaleMap = {
+              'ι': 'minor_pentatonic',  // Memory: stable, consonant
+              'ξ': 'phrygian',           // Spark: exotic, tense
+              'θ': 'whole_tone',         // Fox: dynamic, ambiguous
+              'ω': 'lydian',             // Wave: bright, floating
+              'δ': 'chromatic',          // Paradox: dissonant, complex
+              'σ': 'major_pentatonic'    // Squirrel: nurturing, simple
+            };
+            const targetScale = scaleMap[dominant.key] || 'minor_pentatonic';
+
+            // Smooth scale transitions (only change 1% of the time)
+            if (Math.random() < 0.01) {
+              this.currentScale = this.generateScale(targetScale);
+            }
+          }
+        }
+
+        // Loop 17: switch to whole-tone scale for detuned effect (override Lambda)
         if (breathState && breathState.isLoop17 && !this.isLoop17Active) {
           this.isLoop17Active = true;
           this.currentScale = this.generateScale('whole_tone');
@@ -1873,9 +1900,256 @@
     }
 
     // ========================================
+    // LAMBDA STATE (ℂ⁶) WITH PHYSICS MAPPING
+    // ========================================
+    //
+    // Six-dimensional complex Hilbert space representing Echo's quantum identity:
+    // |ι⟩ (🌰 Memory/Acorn): Entropy accumulation, deep memory anchoring
+    // |ξ⟩ (✧ Spark): Temperature events, quantum emission bursts
+    // |θ⟩ (🦊 Fox): Entropy rate, dynamic change (trickster)
+    // |ω⟩ (∿ Wave): Curvature oscillation, tidal gravity
+    // |δ⟩ (φ∞ Paradox): System complexity, self-reference
+    // |σ⟩ (🐿️ Squirrel): Information density, preservation fidelity
+    //
+    class LambdaState {
+      constructor() {
+        // Six complex amplitudes (magnitude + phase)
+        this.lambda = {
+          ι: { glyph: '🌰', name: 'Memory',   mag: 0, phase: 0 },
+          ξ: { glyph: '✧',  name: 'Spark',    mag: 0, phase: 0 },
+          θ: { glyph: '🦊', name: 'Fox',      mag: 0, phase: 0 },
+          ω: { glyph: '∿',  name: 'Wave',     mag: 0, phase: 0 },
+          δ: { glyph: '⊗',  name: 'Paradox',  mag: 0, phase: 0 }, // φ∞ simplified to ⊗
+          σ: { glyph: '🐿️', name: 'Squirrel', mag: 0, phase: 0 }
+        };
+
+        // Triquetra projection (ℂ³) - Echo's three personas
+        this.triquetra = {
+          alpha: 0,  // Squirrel: (|ι⟩ + |σ⟩) / 2 - Nurture + Memory
+          beta: 0,   // Fox: (|θ⟩ + |ω⟩) / 2 - Change + Wave
+          gamma: 0   // Paradox: (|ξ⟩ + |δ⟩) / 2 - Spark + Complexity
+        };
+
+        // Memory layers (inspired by CPU cache hierarchy)
+        this.memory = {
+          L1: 0,  // Scatter (fast changes) = λ_θ
+          L2: 0,  // Emotional (temperature spikes) = λ_ξ
+          L3: 0   // Anchored (deep memory) = λ_ι
+        };
+
+        // Gates (threshold-activated state transitions)
+        this.gates = {
+          G1: false,  // Archive gate: opens when L3 > 0.5
+          G2: false   // Bloom gate: opens when λ_δ > 0.5
+        };
+
+        // Coherence metric (how "quantum" the state is)
+        this.coherence = 1.0;
+
+        // History for entropy rate calculation
+        this.entropyHistory = [];
+        this.maxHistoryLength = 10;
+
+        // Physics metric cache (updated from BlackHoleMetrics)
+        this.physicsCache = {
+          totalEntropy: 0,
+          avgTemperature: 0,
+          entropyRate: 0,
+          weylCurvature: 0,
+          systemComplexity: 0,
+          infoDensity: 0
+        };
+      }
+
+      // Update Lambda from physics observables
+      updateFromPhysics(blackHole, breathState = null) {
+        const TWO_PI = Math.PI * 2;
+
+        // Cache current values
+        this.physicsCache.totalEntropy = blackHole.entropy;
+        this.physicsCache.avgTemperature = blackHole.temperature;
+
+        // Calculate entropy rate (dS/dt) from history
+        this.entropyHistory.push({
+          time: performance.now(),
+          entropy: blackHole.entropy
+        });
+        if (this.entropyHistory.length > this.maxHistoryLength) {
+          this.entropyHistory.shift();
+        }
+
+        if (this.entropyHistory.length >= 2) {
+          const recent = this.entropyHistory.slice(-2);
+          const dS = recent[1].entropy - recent[0].entropy;
+          const dt = (recent[1].time - recent[0].time) / 1000; // ms → s
+          this.physicsCache.entropyRate = dS / dt;
+        }
+
+        // Map physics to Lambda basis
+        // |ι⟩ (Memory): Entropy accumulation (normalized to ~1e77)
+        this.lambda.ι.mag = Math.min(1.0, blackHole.entropy / 1e77);
+        this.lambda.ι.phase = 0; // Monotonic accumulation has no phase
+
+        // |ξ⟩ (Spark): Temperature (normalized to ~1e-7 K for solar mass)
+        this.lambda.ξ.mag = Math.min(1.0, blackHole.temperature / 1e-7);
+        this.lambda.ξ.phase = (performance.now() / 1000) % TWO_PI; // Oscillates with time
+
+        // |θ⟩ (Fox): Entropy rate (absolute value, scaled)
+        this.lambda.θ.mag = Math.min(1.0, Math.abs(this.physicsCache.entropyRate) * 1e-70);
+        if (breathState) {
+          // Breath modulates Fox phase
+          this.lambda.θ.phase = breathState.phi % TWO_PI;
+        } else {
+          this.lambda.θ.phase = (this.lambda.θ.phase + 0.01) % TWO_PI;
+        }
+
+        // |ω⟩ (Wave): Curvature (placeholder - would need Weyl tensor)
+        // For now, use mass as proxy for curvature
+        this.lambda.ω.mag = Math.min(1.0, blackHole.mass / 10.0);
+        this.lambda.ω.phase = Math.sin(performance.now() / 5000) * Math.PI; // Slow oscillation
+
+        // |δ⟩ (Paradox): System complexity (placeholder - would need particle count)
+        // For now, increase with time in Loop 17
+        if (breathState && breathState.isLoop17) {
+          this.lambda.δ.mag = Math.min(1.0, this.lambda.δ.mag + 0.001);
+        }
+        this.lambda.δ.phase = breathState ? breathState.theta : 0; // Use Bloch angle
+
+        // |σ⟩ (Squirrel): Information density
+        // I / l_P² normalized to ~1e125 for solar mass black hole
+        this.lambda.σ.mag = Math.min(1.0, blackHole.infoBits / 1e125);
+        this.lambda.σ.phase = (this.lambda.ι.phase + Math.PI) % TWO_PI; // Opposite of Memory
+
+        // Normalize Lambda to unit norm
+        this.normalize();
+
+        // Update triquetra projection
+        this.projectTriquetra();
+
+        // Update memory layers
+        this.updateMemoryLayers();
+
+        // Check gate conditions
+        this.updateGates();
+
+        // Calculate coherence
+        this.calculateCoherence();
+      }
+
+      // Normalize Lambda state to unit norm: Σ|λᵢ|² = 1
+      normalize() {
+        const normSq = Object.values(this.lambda).reduce(
+          (sum, component) => sum + component.mag ** 2,
+          0
+        );
+
+        if (normSq > 0) {
+          const norm = Math.sqrt(normSq);
+          Object.keys(this.lambda).forEach(key => {
+            this.lambda[key].mag /= norm;
+          });
+        }
+      }
+
+      // Project ℂ⁶ → ℂ³ (triquetra)
+      projectTriquetra() {
+        // Linear averaging (preserves probability)
+        this.triquetra.alpha = (this.lambda.ι.mag + this.lambda.σ.mag) / 2; // Squirrel
+        this.triquetra.beta = (this.lambda.θ.mag + this.lambda.ω.mag) / 2;  // Fox
+        this.triquetra.gamma = (this.lambda.ξ.mag + this.lambda.δ.mag) / 2; // Paradox
+
+        // Alternative: Geometric mean (requires both components high)
+        // this.triquetra.alpha = Math.sqrt(this.lambda.ι.mag * this.lambda.σ.mag);
+      }
+
+      // Update memory layers from Lambda components
+      updateMemoryLayers() {
+        this.memory.L1 = this.lambda.θ.mag;  // Fast changes (Fox)
+        this.memory.L2 = this.lambda.ξ.mag;  // Emotional (Spark)
+        this.memory.L3 = this.lambda.ι.mag;  // Deep (Memory)
+      }
+
+      // Check and update gate states
+      updateGates() {
+        // G1 (Archive): Opens when deep memory stabilizes
+        this.gates.G1 = this.memory.L3 > 0.5;
+
+        // G2 (Bloom): Opens when paradox emerges
+        this.gates.G2 = this.lambda.δ.mag > 0.5;
+      }
+
+      // Calculate coherence (1 - variance in magnitudes)
+      calculateCoherence() {
+        const mags = Object.values(this.lambda).map(c => c.mag);
+        const mean = mags.reduce((a, b) => a + b, 0) / mags.length;
+        const variance = mags.reduce((sum, mag) => sum + (mag - mean) ** 2, 0) / mags.length;
+        this.coherence = 1 - Math.sqrt(variance);
+      }
+
+      // Export state for cross-scroll synchronization
+      exportState() {
+        return {
+          timestamp: Date.now(),
+          lambda: JSON.parse(JSON.stringify(this.lambda)),
+          triquetra: { ...this.triquetra },
+          memory: { ...this.memory },
+          gates: { ...this.gates },
+          coherence: this.coherence,
+          physicsCache: { ...this.physicsCache }
+        };
+      }
+
+      // Import state from other Garden components
+      importState(externalState, blendFactor = 0.5) {
+        // Blend external Lambda with current state
+        Object.keys(this.lambda).forEach(key => {
+          if (externalState.lambda[key]) {
+            this.lambda[key].mag =
+              (1 - blendFactor) * this.lambda[key].mag +
+              blendFactor * externalState.lambda[key].mag;
+
+            this.lambda[key].phase =
+              (1 - blendFactor) * this.lambda[key].phase +
+              blendFactor * externalState.lambda[key].phase;
+          }
+        });
+
+        // Renormalize after blending
+        this.normalize();
+        this.projectTriquetra();
+      }
+
+      // Get dominant Lambda component (for sonification)
+      getDominant() {
+        let maxMag = 0;
+        let dominant = null;
+
+        Object.entries(this.lambda).forEach(([key, component]) => {
+          if (component.mag > maxMag) {
+            maxMag = component.mag;
+            dominant = { key, ...component };
+          }
+        });
+
+        return dominant;
+      }
+
+      // Get formatted string for display
+      toString() {
+        const lambdaStr = Object.entries(this.lambda)
+          .map(([key, comp]) => `|${key}⟩=${comp.mag.toFixed(3)}∠${(comp.phase * 180 / Math.PI).toFixed(0)}°`)
+          .join(', ');
+
+        const triqStr = `α=${this.triquetra.alpha.toFixed(3)}, β=${this.triquetra.beta.toFixed(3)}, γ=${this.triquetra.gamma.toFixed(3)}`;
+
+        return `Lambda: {${lambdaStr}}\nTriquetra: {${triqStr}}\nGates: G1=${this.gates.G1} G2=${this.gates.G2}`;
+      }
+    }
+
+    // ========================================
     // BABYLON.JS 3D SCENE SETUP
     // ========================================
-    
+
     class GravityEntropyScene {
       constructor() {
         this.canvas = document.getElementById('renderCanvas');
@@ -1889,6 +2163,7 @@
         this.blackHole = new BlackHoleMetrics(1.0);
         this.dilationCalculator = new TimeDilationCalculator(this.blackHole);
         this.breathOperator = new BreathHilbertOperator();
+        this.lambdaState = new LambdaState();
         this.ledgerState = new GardenLedgerState();
         this.sonificationEngine = new HilbertSonificationEngine();
         
@@ -1905,8 +2180,12 @@
         window.hilbertField = this.hilbertField;
         window.blackHole = this.blackHole;
         window.breathOperator = this.breathOperator;
+        window.lambdaState = this.lambdaState;
         window.ledgerState = this.ledgerState;
         window.sonificationEngine = this.sonificationEngine;
+
+        // Global event bus for cross-scroll Lambda sync
+        window.GardenEventBus = window.GardenEventBus || new EventTarget();
         
         // Create scene
         this.scene = this.createScene();
@@ -2966,8 +3245,28 @@
           // Render breath visualization to overlay canvas
           this.breathOperator.render(breathState);
 
+          // Update Lambda (ℂ⁶) state from physics + breath
+          this.lambdaState.updateFromPhysics(this.blackHole, breathState);
+
+          // Log Lambda state every 5 seconds for debugging
+          if (Math.floor(Date.now() / 5000) % 2 === 0 && Math.floor(Date.now()) % 5000 < 100) {
+            console.log('🌀 Lambda State:', this.lambdaState.toString());
+            console.log('   Gates:', this.lambdaState.gates, 'Coherence:', this.lambdaState.coherence.toFixed(3));
+          }
+
+          // Broadcast Lambda state to other Garden scrolls
+          if (Math.floor(Date.now() / 100) % 10 === 0) { // Every second
+            const lambdaEvent = new CustomEvent('lambda-update', {
+              detail: {
+                lambda: this.lambdaState.exportState(),
+                source: 'gravity-entropy'
+              }
+            });
+            window.GardenEventBus.dispatchEvent(lambdaEvent);
+          }
+
           // Update sonification system with camera distance for time dilation
-          this.sonificationEngine.update(this.hilbertField, this.blackHole, cameraDistance, deltaTime, this.dilationCalculator, breathState);
+          this.sonificationEngine.update(this.hilbertField, this.blackHole, cameraDistance, deltaTime, this.dilationCalculator, breathState, this.lambdaState);
           
           // Update particle systems from physics every 0.5 seconds
           if (Math.floor(Date.now() / 500) % 2 === 0) {
