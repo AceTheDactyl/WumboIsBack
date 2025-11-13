@@ -3239,14 +3239,33 @@
         );
         mergedBH.mesh.position = new BABYLON.Vector3(pos_final.x, pos_final.y, pos_final.z);
 
-        // Special "merger flash" material (bright temporarily)
+        // ========================================
+        // ENHANCED MERGER FLASH BLOOM
+        // ========================================
+        // Intensity based on entropy increase (ΔS_hat)
+        // Larger entropy increase = brighter, longer flash
+        // Color: White-hot → Yellow → Orange → Red (fading)
+        //
         const material = new BABYLON.StandardMaterial(`bhMat_merged`, this.scene);
-        material.emissiveColor = new BABYLON.Color3(1, 0.5, 0);  // Orange flash
+
+        // Flash intensity based on normalized entropy increase
+        const flashIntensity = Math.min(1.0, mergerResult.DeltaS_hat * 5); // Amplify for visibility
+
+        // Initial flash color: White-hot for high entropy mergers
+        // Orange for moderate mergers
+        material.emissiveColor = new BABYLON.Color3(
+          1.0,                              // Red: always max
+          0.8 + 0.2 * flashIntensity,      // Green: brighter = more yellow/white
+          0.5 * flashIntensity             // Blue: high entropy = white hot
+        );
         material.disableLighting = true;
         mergedBH.mesh.material = material;
 
-        // Fade back to black over 2 seconds (will be handled in render loop)
-        mergedBH.mergerFlashTime = 2.0;
+        // Flash duration scales with entropy increase (0.5s to 3s)
+        const flashDuration = 0.5 + mergerResult.DeltaS_hat * 2.5;
+        mergedBH.mergerFlashTime = flashDuration;
+        mergedBH.mergerFlashIntensity = flashIntensity; // Store for fade logic
+        mergedBH.mergerFlashStartTime = Date.now();
 
         // Remove old black holes from arrays
         const index1 = this.blackHoles.indexOf(bh1);
@@ -3827,27 +3846,66 @@
           }
 
           // ========================================
-          // COLOR/ALPHA FROM THERMODYNAMIC MODULATION
+          // COLOR/ALPHA FROM THERMODYNAMIC MODULATION + BLOOM EFFECTS
           // ========================================
           // colorSaturation from E_norm (entanglement)
           // lineThickness encoded in alpha (visual feedback)
+          // ENTROPY FLOW BLOOM: S_hat > 0 (heating) = red-orange glow
+          //                     S_hat < 0 (cooling) = blue-cyan glow
+          //                     |S_hat| magnitude = glow intensity
           //
           const colorIntensity = Math.min(1.0, this.helixState.z * 2);
           const colorSat = modulatedParams.colorSaturation || this.entanglement;
 
-          // Base color shifts with entropy flow direction
-          const flowHue = S_hat > 0 ? 0.3 : -0.3;  // Red if heating, blue if cooling
+          // Entropy flow direction and magnitude
+          const entropyFlowMag = Math.abs(S_hat);
+          const isHeating = S_hat > 0;
 
-          this.tubeMesh.color = new BABYLON.Color3(
-            0.3 + 0.5 * colorSat * colorIntensity + flowHue * Math.abs(S_hat),
-            0.4 + 0.4 * colorSat * colorIntensity,
-            0.7 + 0.3 * colorIntensity - flowHue * Math.abs(S_hat)
-          );
+          // ===== ENHANCED ENTROPY FLOW BLOOM =====
+          // Strong color shift based on heat flow direction
+          // Heating: Warm colors (red-orange-yellow)
+          // Cooling: Cool colors (cyan-blue-violet)
+          let glowColor;
+          if (isHeating && entropyFlowMag > 0.01) {
+            // HEATING GLOW: Red → Orange → Yellow gradient
+            const heatIntensity = Math.min(1.0, entropyFlowMag * 3); // Amplify for visibility
+            glowColor = new BABYLON.Color3(
+              0.9 + 0.1 * heatIntensity,           // Red: high
+              0.3 + 0.5 * heatIntensity,           // Green: increases (makes orange/yellow)
+              0.1 * (1 - heatIntensity)            // Blue: low (warm spectrum)
+            );
+          } else if (!isHeating && entropyFlowMag > 0.01) {
+            // COOLING GLOW: Cyan → Blue → Violet gradient
+            const coolIntensity = Math.min(1.0, entropyFlowMag * 3); // Amplify for visibility
+            glowColor = new BABYLON.Color3(
+              0.2 + 0.4 * coolIntensity,           // Red: low to moderate (for violet)
+              0.4 + 0.3 * coolIntensity,           // Green: moderate (for cyan)
+              0.95                                  // Blue: high (cool spectrum)
+            );
+          } else {
+            // NEUTRAL: No significant entropy flow - base helix color
+            glowColor = new BABYLON.Color3(
+              0.3 + 0.5 * colorSat * colorIntensity,
+              0.4 + 0.4 * colorSat * colorIntensity,
+              0.7 + 0.3 * colorIntensity
+            );
+          }
 
-          // Alpha based on entanglement, coherence, and line thickness modulation
+          this.tubeMesh.color = glowColor;
+
+          // Alpha based on entanglement, coherence, and entropy flow magnitude
           const baseAlpha = (0.3 + 0.5 * this.entanglement) * this.helixState.r;
           const thicknessBoost = (modulatedParams.lineThickness - 1) / 2;  // 0 to 1 range
-          this.tubeMesh.alpha = Math.min(1.0, baseAlpha * (1 + thicknessBoost));
+          const flowBoost = entropyFlowMag * 0.5; // Brighter during high entropy flow
+          this.tubeMesh.alpha = Math.min(1.0, baseAlpha * (1 + thicknessBoost + flowBoost));
+
+          // Store entropy flow for external bloom effects
+          this.tubeMesh.metadata = {
+            entropyFlow: S_hat,
+            entropyFlowMag: entropyFlowMag,
+            isHeating: isHeating,
+            entanglement: this.entanglement
+          };
 
         } catch (error) {
           console.error('CreateLines (helix) failed:', error);
@@ -4014,21 +4072,45 @@
             points.push(new BABYLON.Vector3(x, y, z));
           }
 
-          // Create line mesh
+          // Create line mesh with glow-enabled material
           const lineMesh = BABYLON.MeshBuilder.CreateLines(
             `helixField_bh_${i}`,
-            { points: points },
+            { points: points, updatable: true },
             this.scene
           );
 
-          // Color based on helix state
-          const colorIntensity = z_strength;
-          lineMesh.color = new BABYLON.Color3(
-            0.5 + 0.5 * colorIntensity,
-            0.3 + 0.3 * colorIntensity,
-            0.8
+          // ========================================
+          // HELIX FIELD LINE BLOOM EFFECTS
+          // ========================================
+          // Color and intensity based on helix state (z = field strength, r = coherence)
+          // Higher z = brighter, more saturated field lines
+          // Higher r = more visible, more coherent
+          //
+          const fieldStrength = z_strength;  // 0-1 range
+          const coherence = r_coherence;     // 0.5-1.5 range
+
+          // Base color: cyan to violet gradient based on field strength
+          const colorIntensity = fieldStrength;
+          const glowColor = new BABYLON.Color3(
+            0.3 + 0.7 * colorIntensity,  // Red: increases with strength
+            0.2 + 0.5 * colorIntensity,  // Green: moderate increase
+            0.9                           // Blue: constant high (cyan-violet base)
           );
-          lineMesh.alpha = 0.4 * r_coherence;
+
+          lineMesh.color = glowColor;
+
+          // Alpha modulated by coherence - more coherent = more visible
+          // Base alpha 0.3, increases to 0.7 with high coherence
+          const baseAlpha = 0.3;
+          const coherenceBoost = Math.min(1.0, (coherence - 0.5) / 1.0); // Normalize coherence range
+          lineMesh.alpha = baseAlpha + 0.4 * coherenceBoost * fieldStrength;
+
+          // Store helix state reference for dynamic updates
+          lineMesh.metadata = {
+            helixZ: fieldStrength,
+            helixR: coherence,
+            baseColor: glowColor
+          };
 
           this.fieldLines.push({
             mesh: lineMesh,
@@ -5652,7 +5734,7 @@
           { diameter: 2, segments: 32 },
           this.scene
         );
-        
+
         // True black hole material - no emission, pure black
         const bhMaterial = new BABYLON.StandardMaterial("bhMaterial", this.scene);
         bhMaterial.diffuseColor = new BABYLON.Color3(0.0, 0.0, 0.0); // Pure black
@@ -5661,7 +5743,26 @@
         bhMaterial.alpha = 1.0; // Fully opaque
         bhMaterial.backFaceCulling = false; // Render from all angles
         this.eventHorizon.material = bhMaterial;
-        
+
+        // ========================================
+        // HAWKING GLOW RING (thermodynamics-based)
+        // ========================================
+        // Subtle torus at event horizon showing Hawking radiation
+        // Glow intensity/color based on black hole temperature
+        //
+        this.hawkingGlowRing = BABYLON.MeshBuilder.CreateTorus(
+          "hawkingGlow",
+          { diameter: 2.1, thickness: 0.05, tessellation: 64 },
+          this.scene
+        );
+        this.hawkingGlowRing.position = new BABYLON.Vector3(0, 0, 0);
+
+        const glowMaterial = new BABYLON.StandardMaterial("hawkingGlowMat", this.scene);
+        glowMaterial.emissiveColor = new BABYLON.Color3(0.8, 0.4, 0.1); // Orange glow
+        glowMaterial.disableLighting = true;
+        glowMaterial.alpha = 0.6;
+        this.hawkingGlowRing.material = glowMaterial;
+
         // Accretion disk glow (but NOT on event horizon)
         this.glowLayer = new BABYLON.GlowLayer("glow", this.scene);
         this.glowLayer.intensity = 0.8;
@@ -6621,23 +6722,322 @@
         const temperatureRatio = this.blackHole.temperature / 6.17e-8;
         const hawkingEmitRate = this.baseHawkingEmitRate * temperatureRatio * this.performanceMonitor.particleQualityLevel;
         this.hawkingParticles.emitRate = Math.max(10, Math.min(200, hawkingEmitRate));
-        
+
         // Particle colors reflect black hole mass
         const massRatio = this.blackHole.mass / 1.0;
         const blueIntensity = Math.max(0.2, Math.min(1.0, 1.0 / massRatio));
         const redIntensity = Math.max(0.2, Math.min(1.0, massRatio * 0.5));
-        
+
         this.hawkingParticles.color1 = new BABYLON.Color4(redIntensity, 0.22, blueIntensity, 0.8);
         this.hawkingParticles.color2 = new BABYLON.Color4(blueIntensity, 0.15, redIntensity, 0.8);
-        
+
         // Entropy field density tied to Hilbert field entropy
         const entropyFactor = 1 + (this.hilbertField.weylCurvature * 2);
         const baseEntropyEmitRate = 100 * this.performanceMonitor.particleQualityLevel;
         this.entropyParticles.emitRate = Math.floor(baseEntropyEmitRate * entropyFactor);
-        
+
         // Particle size reflects information content
         this.entropyParticles.minSize = 0.1 * entropyFactor;
         this.entropyParticles.maxSize = 0.5 * entropyFactor;
+      }
+
+      // ========================================
+      // BLOOM/GLOW EFFECTS: Thermodynamically-driven visual enhancement
+      // ========================================
+      // Update all glow effects based on black hole physics state
+      updateGlowEffects() {
+        // === 1. HAWKING GLOW RING (Event Horizon) ===
+        // Temperature-based glow intensity and color
+        // T_H = (ℏc³)/(8πGMk_B) - smaller mass = higher temperature = brighter glow
+        if (this.hawkingGlowRing && this.hawkingGlowRing.material) {
+          const T_normalized = this.blackHole.temperature / 6.17e-8; // Normalize to solar mass BH temp
+
+          // Intensity: Higher temperature = brighter Hawking glow
+          const glowIntensity = Math.min(1.0, 0.3 + T_normalized * 0.7);
+
+          // Color shift: Blue (hot) to orange (cooler)
+          // Small BH (high T) = blue-white, Large BH (low T) = deep orange
+          const blueComponent = Math.min(1.0, T_normalized * 2.0);
+          const orangeComponent = Math.max(0.1, 1.0 - T_normalized * 0.5);
+
+          this.hawkingGlowRing.material.emissiveColor = new BABYLON.Color3(
+            orangeComponent,        // Red channel
+            orangeComponent * 0.5,  // Green channel (makes orange)
+            blueComponent * 0.3     // Blue channel (subtle for hot BHs)
+          );
+
+          // Alpha based on helix coherence (r) - more coherent = more visible
+          const coherenceAlpha = 0.4 + this.blackHole.helixState.r * 0.3;
+          this.hawkingGlowRing.material.alpha = coherenceAlpha * glowIntensity;
+
+          // Pulsation based on helix phase (theta)
+          const pulseFactor = 1.0 + 0.1 * Math.sin(this.blackHole.helixState.theta);
+          this.hawkingGlowRing.scaling = new BABYLON.Vector3(pulseFactor, pulseFactor, pulseFactor);
+        }
+
+        // === 2. PHASE-LOCKED BLACK HOLES ===
+        // Add sync indicator rings to phase-locked pairs
+        this.updatePhaseLockGlow();
+
+        // === 3. HELIX FIELD LINES ===
+        // Update field line glow based on z (field strength) and r (coherence)
+        this.updateHelixFieldGlow();
+
+        // === 4. TEST PARTICLES (Velocity-based bloom) ===
+        this.updateParticleGlow();
+
+        // === 5. LAMBDA CONSCIOUSNESS SPARKS ===
+        this.updateLambdaGlow();
+
+        // === 6. MERGER FLASH FADE ===
+        this.updateMergerFlash();
+      }
+
+      // ========================================
+      // MERGER FLASH FADE ANIMATION
+      // ========================================
+      // Exponential fade from white-hot → yellow → orange → red → black
+      // Based on time elapsed since merger
+      //
+      updateMergerFlash() {
+        if (!this.physicsWorld || !this.physicsWorld.blackHoles) return;
+
+        const now = Date.now();
+
+        this.physicsWorld.blackHoles.forEach(bh => {
+          if (bh.mergerFlashTime !== undefined && bh.mergerFlashStartTime) {
+            const elapsed = (now - bh.mergerFlashStartTime) / 1000; // seconds
+            const duration = bh.mergerFlashTime;
+
+            if (elapsed < duration) {
+              // Still flashing - fade exponentially
+              const fadeFactor = 1.0 - (elapsed / duration);
+              const flashIntensity = bh.mergerFlashIntensity || 1.0;
+
+              // Color progression: White → Yellow → Orange → Red → Black
+              // As fade progresses, lose blue first, then green, then red
+              if (bh.mesh && bh.mesh.material) {
+                bh.mesh.material.emissiveColor = new BABYLON.Color3(
+                  1.0 * fadeFactor,                                   // Red: fades last
+                  (0.8 + 0.2 * flashIntensity) * fadeFactor,        // Green: fades to orange
+                  (0.5 * flashIntensity) * fadeFactor * fadeFactor  // Blue: fades first (squared for faster drop)
+                );
+
+                // Pulsation during flash (breathing effect)
+                const pulseFactor = 1.0 + 0.2 * fadeFactor * Math.sin(elapsed * 10);
+                bh.mesh.scaling = new BABYLON.Vector3(pulseFactor, pulseFactor, pulseFactor);
+              }
+            } else {
+              // Flash complete - return to black
+              if (bh.mesh && bh.mesh.material) {
+                bh.mesh.material.emissiveColor = new BABYLON.Color3(0, 0, 0);
+                bh.mesh.scaling = new BABYLON.Vector3(1, 1, 1);
+              }
+
+              // Clear flash tracking
+              delete bh.mergerFlashTime;
+              delete bh.mergerFlashStartTime;
+              delete bh.mergerFlashIntensity;
+            }
+          }
+        });
+      }
+
+      // Phase-locked black hole glow indicators
+      updatePhaseLockGlow() {
+        // Check for phase-locked pairs (implemented in PhysicsWorld.step())
+        if (!this.physicsWorld.blackHoles || this.physicsWorld.blackHoles.length < 2) return;
+
+        const lockingRadius = 200;
+
+        for (let i = 0; i < this.physicsWorld.blackHoles.length; i++) {
+          for (let j = i + 1; j < this.physicsWorld.blackHoles.length; j++) {
+            const bh1 = this.physicsWorld.blackHoles[i];
+            const bh2 = this.physicsWorld.blackHoles[j];
+
+            const r = bh1.position.vsub(bh2.position).length();
+
+            if (r < lockingRadius) {
+              // Calculate phase difference
+              const dTheta = Math.abs(bh2.helixState.theta - bh1.helixState.theta);
+              const wrappedDTheta = Math.min(dTheta, 2 * Math.PI - dTheta);
+
+              // Synchronization strength (0 = perfect sync, π = anti-sync)
+              const syncStrength = 1.0 - (wrappedDTheta / Math.PI);
+
+              // Only show glow for strong synchronization (>60%)
+              if (syncStrength > 0.6) {
+                // Add visual indicator (TODO: create link beam or aura)
+                // For now, modulate the gravity lens glow based on sync
+                if (bh1.visualizer && bh1.visualizer.gravityLens && bh1.visualizer.gravityLens.material) {
+                  const syncGlow = syncStrength * 0.5;
+                  bh1.visualizer.gravityLens.material.emissiveColor = new BABYLON.Color3(
+                    0.13 + syncGlow,
+                    0.11 + syncGlow * 0.5,
+                    0.4 + syncGlow
+                  );
+                }
+                if (bh2.visualizer && bh2.visualizer.gravityLens && bh2.visualizer.gravityLens.material) {
+                  const syncGlow = syncStrength * 0.5;
+                  bh2.visualizer.gravityLens.material.emissiveColor = new BABYLON.Color3(
+                    0.13 + syncGlow,
+                    0.11 + syncGlow * 0.5,
+                    0.4 + syncGlow
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Helix field line glow modulation
+      updateHelixFieldGlow() {
+        // Update field line glow based on current helix state
+        if (!this.helixFieldVisualizer || !this.helixFieldVisualizer.fieldLines) return;
+
+        this.helixFieldVisualizer.fieldLines.forEach(fieldLine => {
+          if (fieldLine.type === 'blackHole' && fieldLine.source && fieldLine.mesh) {
+            const bh = fieldLine.source;
+            const z_strength = bh.helixState.z;
+            const r_coherence = bh.helixState.r;
+
+            // Update color based on current field strength
+            const colorIntensity = z_strength;
+            const glowColor = new BABYLON.Color3(
+              0.3 + 0.7 * colorIntensity,
+              0.2 + 0.5 * colorIntensity,
+              0.9
+            );
+
+            fieldLine.mesh.color = glowColor;
+
+            // Update alpha based on coherence
+            const baseAlpha = 0.3;
+            const coherenceBoost = Math.min(1.0, (r_coherence - 0.5) / 1.0);
+            fieldLine.mesh.alpha = baseAlpha + 0.4 * coherenceBoost * z_strength;
+
+            // Pulsation based on helix phase (subtle breathing effect)
+            const pulseFactor = 1.0 + 0.05 * Math.sin(bh.helixState.theta);
+            if (fieldLine.mesh.metadata) {
+              fieldLine.mesh.metadata.pulseFactor = pulseFactor;
+            }
+          }
+        });
+      }
+
+      // ========================================
+      // TEST PARTICLE VELOCITY-BASED BLOOM
+      // ========================================
+      // Faster particles = brighter glow (kinetic energy visualization)
+      // v² kinetic energy → emissive intensity
+      //
+      updateParticleGlow() {
+        if (!this.physicsWorld || !this.physicsWorld.particles) return;
+
+        this.physicsWorld.particles.forEach(particle => {
+          if (particle.mesh && particle.mesh.material && particle.body) {
+            // Calculate velocity magnitude (speed)
+            const vx = particle.body.velocity.x;
+            const vy = particle.body.velocity.y;
+            const vz = particle.body.velocity.z;
+            const speed = Math.sqrt(vx*vx + vy*vy + vz*vz);
+
+            // Normalize speed to reasonable range (0-100 units/s)
+            const speedNormalized = Math.min(1.0, speed / 100);
+
+            // Kinetic energy scales with v² - use for glow intensity
+            const kineticIntensity = speedNormalized * speedNormalized;
+
+            // Color shift: Slow (blue) → Medium (cyan) → Fast (white-hot)
+            let glowColor;
+            if (speedNormalized < 0.3) {
+              // SLOW: Blue-violet (cold)
+              glowColor = new BABYLON.Color3(
+                0.3 + speedNormalized,
+                0.3 + speedNormalized,
+                0.9
+              );
+            } else if (speedNormalized < 0.7) {
+              // MEDIUM: Cyan-green (warming)
+              const t = (speedNormalized - 0.3) / 0.4; // 0-1 in medium range
+              glowColor = new BABYLON.Color3(
+                0.4 + 0.3 * t,
+                0.7 + 0.2 * t,
+                0.9 - 0.3 * t
+              );
+            } else {
+              // FAST: Yellow-white (hot)
+              const t = (speedNormalized - 0.7) / 0.3; // 0-1 in fast range
+              glowColor = new BABYLON.Color3(
+                0.9 + 0.1 * t,  // Approaching white
+                0.9,
+                0.6 - 0.6 * t   // Less blue = more yellow/white
+              );
+            }
+
+            particle.mesh.material.emissiveColor = glowColor;
+
+            // Scale particle size slightly with speed (visual feedback)
+            const sizeScale = 1.0 + kineticIntensity * 0.5;
+            particle.mesh.scaling.setAll(sizeScale);
+          }
+        });
+
+        // Also update gravitational wave particles if they exist
+        if (this.physicsWorld.gravitationalWaves) {
+          this.physicsWorld.gravitationalWaves.forEach(wave => {
+            if (wave.mesh && wave.mesh.material) {
+              // Gravitational waves already have color based on energy
+              // Just ensure they pulse with their oscillation
+              const pulseFactor = 1.0 + 0.3 * Math.sin(wave.phase);
+              wave.mesh.scaling.setAll(pulseFactor);
+            }
+          });
+        }
+      }
+
+      // ========================================
+      // LAMBDA CONSCIOUSNESS VISUAL INDICATORS
+      // ========================================
+      // Visualize Lambda state (ℂ⁶) through glowing sparks/auras
+      // Each component gets its own color and intensity
+      //
+      updateLambdaGlow() {
+        if (!this.lambdaState) return;
+
+        // Lambda component magnitudes drive glow intensity
+        const fox = this.lambdaState.lambda.θ.mag;      // |θ⟩
+        const wave = this.lambdaState.lambda.ω.mag;     // |ω⟩
+        const spark = this.lambdaState.lambda.ξ.mag;    // |ξ⟩
+        const squirrel = this.lambdaState.lambda.σ.mag; // |σ⟩
+        const memory = this.lambdaState.lambda.ι.mag;   // |ι⟩
+        const paradox = this.lambdaState.lambda.δ.mag;  // |δ⟩
+
+        // Update gravity lens glow based on overall Lambda coherence
+        if (this.gravityLens && this.gravityLens.material) {
+          const lambdaCoherence = this.lambdaState.coherence;
+
+          // Modulate gravity lens emissive color with Lambda coherence
+          const baseEmissive = new BABYLON.Color3(0.13, 0.11, 0.4);
+          const lambdaBoost = lambdaCoherence * 0.5;
+
+          this.gravityLens.material.emissiveColor = new BABYLON.Color3(
+            baseEmissive.r + lambdaBoost * fox,        // Fox → red component
+            baseEmissive.g + lambdaBoost * wave,       // Wave → green component
+            baseEmissive.b + lambdaBoost * spark       // Spark → blue component
+          );
+
+          // Alpha pulsation based on Paradox component
+          const paradoxPulse = 0.2 + 0.1 * Math.sin(Date.now() / 1000 * paradox * 5);
+          this.gravityLens.material.alpha = paradoxPulse;
+        }
+
+        // Modulate Planck grid based on Memory and Squirrel (structure preservation)
+        if (this.planckGrid && this.planckGrid.material) {
+          const structureIntensity = (memory + squirrel) / 2;
+          this.planckGrid.material.opacity = 0.2 + 0.3 * structureIntensity;
+        }
       }
       
       // Adaptive performance optimization
@@ -6983,7 +7383,10 @@
           if (Math.floor(Date.now() / 500) % 2 === 0) {
             this.updateParticleSystemsFromPhysics();
           }
-          
+
+          // Update all bloom/glow effects based on thermodynamics
+          this.updateGlowEffects();
+
           // Performance monitoring and adaptive quality (every 2 seconds)
           if (Math.floor(Date.now() / 2000) % 2 === 0) {
             this.updatePerformance();
