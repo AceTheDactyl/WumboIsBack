@@ -902,8 +902,8 @@
         <input type="range" id="lensing-strength-slider" min="0" max="3" step="0.1" value="1.2" disabled style="opacity: 0.5;">
         <label>Fog Density: <span id="fog-density-display">1.0</span></label>
         <input type="range" id="fog-density-slider" min="0" max="3" step="0.1" value="1.0" disabled style="opacity: 0.5;">
-        <label>Bloom Intensity: <span id="bloom-intensity-display">0.45</span></label>
-        <input type="range" id="bloom-intensity-slider" min="0" max="1" step="0.05" value="0.45" disabled style="opacity: 0.5;">
+        <label>Bloom Intensity: <span id="bloom-intensity-display">0.65</span></label>
+        <input type="range" id="bloom-intensity-slider" min="0" max="1" step="0.05" value="0.65" disabled style="opacity: 0.5;">
       </div>
       <div class="control-group">
         <button id="toggle-hawking">Toggle Hawking Radiation</button>
@@ -5557,13 +5557,13 @@
         this.gridDistortionFactor = 1.0; // Average time dilation of grid (for Pattern Mode 2)
         this.showLensing = false; // Start disabled
         this.showFog = false; // Start disabled
-        this.showBloom = false; // Start disabled
+        this.showBloom = true; // Start ENABLED so bloom slider works immediately
         this.shadersInitialized = false; // Track if shaders have been set up
         
         // Shader intensity controls
         this.lensingStrength = 1.2;
         this.fogDensityMultiplier = 1.0;
-        this.bloomIntensity = 0.45;
+        this.bloomIntensity = 0.65; // Increased from 0.45 for more visible effect
         
         // Setup UI controls
         this.setupControls();
@@ -5974,12 +5974,12 @@
           [this.camera]
         );
         
-        // Enable bloom
+        // Enable bloom (make it more visible)
         this.pipeline.bloomEnabled = true;
-        this.pipeline.bloomThreshold = 0.3;
+        this.pipeline.bloomThreshold = 0.15; // Lower threshold = more objects bloom (was 0.3)
         this.pipeline.bloomWeight = this.bloomIntensity;
         this.pipeline.bloomKernel = 64;
-        this.pipeline.bloomScale = 0.5;
+        this.pipeline.bloomScale = 0.6; // Slightly larger bloom radius (was 0.5)
         
         // Enable tone mapping (HDR)
         this.pipeline.imageProcessingEnabled = true;
@@ -6253,8 +6253,18 @@
         bloomIntensitySlider.addEventListener('input', (e) => {
           this.bloomIntensity = parseFloat(e.target.value);
           bloomIntensityDisplay.textContent = this.bloomIntensity.toFixed(2);
-          if (this.pipeline && this.showBloom) {
+
+          // Always update pipeline if it exists (not just when bloom is enabled)
+          if (this.pipeline) {
             this.pipeline.bloomWeight = this.bloomIntensity;
+
+            // If bloom wasn't enabled, enable it now
+            if (!this.showBloom) {
+              this.showBloom = true;
+              this.pipeline.bloomEnabled = true;
+              document.getElementById('toggle-bloom').textContent = 'Disable Bloom';
+              console.log('🌟 Bloom auto-enabled via slider adjustment');
+            }
           }
         });
         
@@ -6524,6 +6534,11 @@
                 document.getElementById('toggle-bloom').style.opacity = '1';
                 document.getElementById('bloom-intensity-slider').disabled = false;
                 document.getElementById('bloom-intensity-slider').style.opacity = '1';
+
+                // Update button text since bloom starts enabled
+                if (this.showBloom) {
+                  document.getElementById('toggle-bloom').textContent = 'Disable Bloom';
+                }
               }
               
               // Update init button based on results
