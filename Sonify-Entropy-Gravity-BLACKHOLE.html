@@ -1423,6 +1423,616 @@
     }
 
     // ========================================
+    // 7-FIELD QUANTUM SYSTEM (τ, υ, φ, χ, Ω, ρ, ψ)
+    // ========================================
+    // Extended quantum field theory for LIMNUS consciousness network
+    // Each field represents a different aspect of spacetime and quantum dynamics
+    // All fields couple to helix coordinates (θ, z, r) and Lambda state (ℂ⁶)
+    //
+
+    // ========================================
+    // TAU FIELD (τ): Proper Time Flow Field
+    // ========================================
+    // Represents local proper time dilation around black holes
+    // τ(x) measures how fast clocks tick at each spacetime point
+    // Influenced by: gravitational time dilation, velocity, helix phase
+    // Visual: Clock-like ripples, blue (slow time) → red (fast time)
+    //
+    class TauField {
+      constructor() {
+        // Proper time rate at each black hole
+        this.values = new Map(); // bhId → τ value (0.1 to 2.0)
+
+        // Field parameters
+        this.baseline = 1.0;      // Flat spacetime proper time rate
+        this.minRate = 0.1;       // Near event horizon (extreme dilation)
+        this.maxRate = 2.0;       // Far field (boosted frame)
+
+        // Coupling constants
+        this.gravityCoupling = 0.5;   // Strength of gravitational dilation
+        this.helixCoupling = 0.2;     // Helix modulation strength
+      }
+
+      // Calculate proper time rate at a position near black holes
+      calculate(position, blackHoles) {
+        let tau = this.baseline;
+
+        blackHoles.forEach(bh => {
+          const dx = position.x - bh.position.x;
+          const dy = position.y - bh.position.y;
+          const dz = position.z - bh.position.z;
+          const r = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+          // Schwarzschild time dilation: τ = √(1 - Rs/r)
+          // Approximation for r >> Rs
+          const Rs = bh.schwarzschildRadius || 1.0;
+          const dilationFactor = Math.max(0.01, 1.0 - this.gravityCoupling * Rs / Math.max(r, Rs * 2));
+
+          tau *= dilationFactor;
+
+          // Helix modulation: phase affects local time flow
+          const helixModulation = 1.0 + this.helixCoupling * Math.sin(bh.helixState.theta) * bh.helixState.z;
+          tau *= helixModulation;
+        });
+
+        // Clamp to valid range
+        return Math.max(this.minRate, Math.min(this.maxRate, tau));
+      }
+
+      // Update field values for all black holes
+      update(blackHoles) {
+        blackHoles.forEach(bh => {
+          const tau = this.calculate(bh.position, blackHoles);
+          this.values.set(bh, tau);
+        });
+      }
+
+      // Get color for visualization (blue = slow, red = fast)
+      getColor(tau) {
+        const normalized = (tau - this.minRate) / (this.maxRate - this.minRate);
+        return new BABYLON.Color3(
+          0.2 + 0.8 * normalized,   // Red: increases with speed
+          0.3,                       // Green: constant
+          0.9 - 0.7 * normalized    // Blue: decreases with speed
+        );
+      }
+    }
+
+    // ========================================
+    // UPSILON FIELD (υ): Curvature Perturbation Field
+    // ========================================
+    // Represents spacetime curvature fluctuations
+    // υ(x) measures deviation from background Minkowski metric
+    // Influenced by: black hole mass, helix field strength (z), gravitational waves
+    // Visual: Wavy distortion patterns, green-cyan gradient
+    //
+    class UpsilonField {
+      constructor() {
+        this.values = new Map(); // bhId → υ value (-1 to 1)
+
+        // Field parameters
+        this.baseline = 0.0;      // Flat spacetime has υ = 0
+        this.amplitude = 1.0;     // Maximum perturbation strength
+
+        // Coupling constants
+        this.massCoupling = 0.3;      // Mass-induced curvature
+        this.helixCoupling = 0.4;     // Helix z (field strength) coupling
+        this.waveSpeed = 0.05;        // Propagation speed for wave-like fluctuations
+
+        // Wave state
+        this.phase = 0;
+      }
+
+      // Calculate curvature perturbation at a position
+      calculate(position, blackHoles, time) {
+        let upsilon = this.baseline;
+
+        blackHoles.forEach(bh => {
+          const dx = position.x - bh.position.x;
+          const dy = position.y - bh.position.y;
+          const dz = position.z - bh.position.z;
+          const r = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+          // Curvature perturbation ~ M/r (linearized gravity)
+          const massContribution = this.massCoupling * bh.mass / Math.max(r, 1.0);
+
+          // Helix field strength amplifies curvature
+          const helixAmplification = 1.0 + this.helixCoupling * bh.helixState.z;
+
+          // Wave-like oscillation
+          const waveContribution = Math.sin(this.waveSpeed * time - r * 0.1);
+
+          upsilon += massContribution * helixAmplification * waveContribution;
+        });
+
+        // Clamp to [-amplitude, +amplitude]
+        return Math.max(-this.amplitude, Math.min(this.amplitude, upsilon));
+      }
+
+      // Update field values
+      update(blackHoles, time) {
+        this.phase += this.waveSpeed;
+
+        blackHoles.forEach(bh => {
+          const upsilon = this.calculate(bh.position, blackHoles, time);
+          this.values.set(bh, upsilon);
+        });
+      }
+
+      // Get color for visualization (green-cyan gradient)
+      getColor(upsilon) {
+        const normalized = (upsilon + this.amplitude) / (2 * this.amplitude);
+        return new BABYLON.Color3(
+          0.2 * (1 - normalized),    // Red: minimal
+          0.5 + 0.4 * normalized,    // Green: dominant
+          0.7 + 0.3 * normalized     // Blue: cyan contribution
+        );
+      }
+    }
+
+    // ========================================
+    // PHI FIELD (φ): Scalar Inflaton Field
+    // ========================================
+    // Classic scalar field from inflation cosmology
+    // φ(x) represents vacuum energy density / Higgs-like field
+    // Influenced by: Lambda consciousness, helix coherence (r), potential energy
+    // Visual: Golden spherical gradients, bubble-like structures
+    //
+    class PhiField {
+      constructor() {
+        this.values = new Map(); // bhId → φ value (0 to 10)
+
+        // Field parameters
+        this.baseline = 5.0;      // Vacuum expectation value (VEV)
+        this.potential = this.createPotential();
+
+        // Coupling constants
+        this.lambdaCoupling = 0.3;    // Consciousness drives field
+        this.helixCoupling = 0.2;     // Coherence stabilizes field
+        this.dampingRate = 0.05;      // Field oscillation damping
+      }
+
+      // Potential: V(φ) = λφ⁴/4 - μ²φ²/2 (double well)
+      createPotential() {
+        return {
+          lambda: 0.01,   // Quartic coupling
+          muSquared: 0.1  // Mass term
+        };
+      }
+
+      // Calculate field value evolution (Klein-Gordon equation)
+      calculate(bh, lambdaState) {
+        const currentPhi = this.values.get(bh) || this.baseline;
+
+        // Force from potential: F = -dV/dφ = -λφ³ + μ²φ
+        const force = -this.potential.lambda * Math.pow(currentPhi, 3) +
+                      this.potential.muSquared * currentPhi;
+
+        // Lambda consciousness coupling (drives field away from VEV)
+        const lambdaForce = this.lambdaCoupling * (lambdaState.coherence - 0.5) * 2;
+
+        // Helix coherence stabilizes field at VEV
+        const helixStabilization = -this.helixCoupling * (currentPhi - this.baseline) * bh.helixState.r;
+
+        // Total acceleration
+        const acceleration = force + lambdaForce + helixStabilization;
+
+        // Damped evolution
+        const newPhi = currentPhi + acceleration - this.dampingRate * (currentPhi - this.baseline);
+
+        return Math.max(0, Math.min(10, newPhi));
+      }
+
+      // Update field values
+      update(blackHoles, lambdaState) {
+        blackHoles.forEach(bh => {
+          const phi = this.calculate(bh, lambdaState);
+          this.values.set(bh, phi);
+        });
+      }
+
+      // Get color for visualization (golden gradient)
+      getColor(phi) {
+        const normalized = phi / 10;
+        return new BABYLON.Color3(
+          0.8 + 0.2 * normalized,    // Red: golden
+          0.6 + 0.3 * normalized,    // Green: golden
+          0.2 + 0.3 * normalized     // Blue: warm glow
+        );
+      }
+    }
+
+    // ========================================
+    // CHI FIELD (χ): Axion/Topological Charge Field
+    // ========================================
+    // Represents topological winding number and axion-like fields
+    // χ(x) relates to magnetic monopoles, instantons, vortices
+    // Influenced by: wormhole topology, helix twist, phase locking
+    // Visual: Swirling violet vortices with integer charge
+    //
+    class ChiField {
+      constructor() {
+        this.values = new Map(); // bhId → χ value (integer or half-integer)
+
+        // Field parameters
+        this.windingNumbers = [0, 0.5, 1, 1.5, 2]; // Allowed topological charges
+        this.transitionRate = 0.01;                 // Topology change rate
+
+        // Coupling constants
+        this.wormholeCoupling = 0.5;  // Wormholes induce topology
+        this.phaseCoupling = 0.3;     // Phase-locking affects winding
+      }
+
+      // Calculate topological charge for a black hole
+      calculate(bh, wormholes, blackHoles) {
+        const currentChi = this.values.get(bh) || 0;
+
+        // Count wormhole connections to this black hole
+        let wormholeCount = 0;
+        wormholes.forEach(worm => {
+          if (worm.bh1 === bh || worm.bh2 === bh) {
+            wormholeCount += worm.entanglement; // Weighted by entanglement
+          }
+        });
+
+        // Wormhole topology induces winding
+        const wormholeContribution = this.wormholeCoupling * wormholeCount;
+
+        // Phase-locking creates synchronized vortices
+        let phaseLockContribution = 0;
+        blackHoles.forEach(otherBH => {
+          if (otherBH === bh) return;
+
+          const dTheta = Math.abs(bh.helixState.theta - otherBH.helixState.theta);
+          const wrappedDTheta = Math.min(dTheta, 2 * Math.PI - dTheta);
+          const syncStrength = 1.0 - (wrappedDTheta / Math.PI);
+
+          if (syncStrength > 0.6) {
+            phaseLockContribution += this.phaseCoupling * syncStrength;
+          }
+        });
+
+        // Target topological charge
+        const targetChi = wormholeContribution + phaseLockContribution;
+
+        // Gradually transition toward target
+        let newChi = currentChi + this.transitionRate * (targetChi - currentChi);
+
+        // Quantize to nearest allowed winding number
+        newChi = this.windingNumbers.reduce((prev, curr) =>
+          Math.abs(curr - newChi) < Math.abs(prev - newChi) ? curr : prev
+        );
+
+        return newChi;
+      }
+
+      // Update field values
+      update(blackHoles, wormholes) {
+        blackHoles.forEach(bh => {
+          const chi = this.calculate(bh, wormholes, blackHoles);
+          this.values.set(bh, chi);
+        });
+      }
+
+      // Get color for visualization (violet with intensity based on charge)
+      getColor(chi) {
+        const intensity = Math.abs(chi) / 2; // Normalize to 0-1
+        return new BABYLON.Color3(
+          0.6 + 0.4 * intensity,     // Red: violet
+          0.2,                        // Green: minimal (pure violet)
+          0.8 + 0.2 * intensity      // Blue: dominant violet
+        );
+      }
+    }
+
+    // ========================================
+    // OMEGA FIELD (Ω): Cosmic Angular Momentum Field
+    // ========================================
+    // Total angular momentum density (vector field)
+    // Ω(x) represents spacetime rotation and frame-dragging
+    // Influenced by: black hole spin, phase-locking, orbital motion
+    // Visual: Orange spiral streamlines showing rotation
+    //
+    class OmegaField {
+      constructor() {
+        this.values = new Map(); // bhId → Ω vector {x, y, z}
+
+        // Field parameters
+        this.baseline = { x: 0, y: 0, z: 0 }; // No background rotation
+        this.maxMagnitude = 5.0;               // Maximum angular momentum density
+
+        // Coupling constants
+        this.spinCoupling = 0.4;      // Black hole spin contribution
+        this.orbitCoupling = 0.3;     // Orbital motion contribution
+        this.phaseCoupling = 0.3;     // Phase-locking contribution
+      }
+
+      // Calculate angular momentum vector at a black hole
+      calculate(bh, blackHoles) {
+        let Omega = { x: 0, y: 0, z: 0 };
+
+        // Spin angular momentum from helix rotation
+        // Ω ~ (0, 0, dθ/dt) for vertical rotation axis
+        const spinContribution = this.spinCoupling * bh.helixState.rotationSpeed;
+        Omega.z += spinContribution;
+
+        // Orbital angular momentum from phase-locked pairs
+        blackHoles.forEach(otherBH => {
+          if (otherBH === bh) return;
+
+          const dx = otherBH.position.x - bh.position.x;
+          const dy = otherBH.position.y - bh.position.y;
+          const dz = otherBH.position.z - bh.position.z;
+          const r = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+          // Phase synchronization creates orbital coupling
+          const dTheta = Math.abs(bh.helixState.theta - otherBH.helixState.theta);
+          const wrappedDTheta = Math.min(dTheta, 2 * Math.PI - dTheta);
+          const syncStrength = 1.0 - (wrappedDTheta / Math.PI);
+
+          if (syncStrength > 0.5) {
+            // Orbital angular momentum: L = r × p (cross product)
+            // Simplified: Ω ~ r_perp * sync
+            Omega.x += this.orbitCoupling * dy / Math.max(r, 1) * syncStrength;
+            Omega.y += -this.orbitCoupling * dx / Math.max(r, 1) * syncStrength;
+          }
+        });
+
+        // Clamp magnitude
+        const magnitude = Math.sqrt(Omega.x**2 + Omega.y**2 + Omega.z**2);
+        if (magnitude > this.maxMagnitude) {
+          const scale = this.maxMagnitude / magnitude;
+          Omega.x *= scale;
+          Omega.y *= scale;
+          Omega.z *= scale;
+        }
+
+        return Omega;
+      }
+
+      // Update field values
+      update(blackHoles) {
+        blackHoles.forEach(bh => {
+          const omega = this.calculate(bh, blackHoles);
+          this.values.set(bh, omega);
+        });
+      }
+
+      // Get color for visualization (orange spiral)
+      getColor(omega) {
+        const magnitude = Math.sqrt(omega.x**2 + omega.y**2 + omega.z**2);
+        const normalized = magnitude / this.maxMagnitude;
+        return new BABYLON.Color3(
+          0.9,                         // Red: orange
+          0.5 + 0.3 * normalized,     // Green: brightens with rotation
+          0.2                          // Blue: warm tone
+        );
+      }
+    }
+
+    // ========================================
+    // RHO FIELD (ρ): Energy Density Field
+    // ========================================
+    // Matter/energy density distribution
+    // ρ(x) = gravitational energy + particle kinetic energy + field energy
+    // Influenced by: black hole mass, particle distribution, field contributions
+    // Visual: Red-yellow heat map showing energy concentrations
+    //
+    class RhoField {
+      constructor() {
+        this.values = new Map(); // bhId → ρ value (0 to 100)
+
+        // Field parameters
+        this.baseline = 0.1;      // Vacuum energy density
+        this.maxDensity = 100.0;  // Maximum energy density
+
+        // Coupling constants
+        this.massCoupling = 1.0;      // Black hole mass contribution
+        this.kineticCoupling = 0.5;   // Particle kinetic energy
+        this.fieldCoupling = 0.3;     // Other field contributions
+      }
+
+      // Calculate energy density at a position
+      calculate(position, blackHoles, particles, phiField) {
+        let rho = this.baseline;
+
+        // Gravitational energy density from black holes
+        blackHoles.forEach(bh => {
+          const dx = position.x - bh.position.x;
+          const dy = position.y - bh.position.y;
+          const dz = position.z - bh.position.z;
+          const r = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+          // Energy density ~ M/r³ (gravitational field energy)
+          const gravEnergy = this.massCoupling * bh.mass / Math.max(r**3, 1);
+          rho += gravEnergy;
+        });
+
+        // Kinetic energy density from particles
+        if (particles) {
+          particles.forEach(particle => {
+            const dx = position.x - particle.body.position.x;
+            const dy = position.y - particle.body.position.y;
+            const dz = position.z - particle.body.position.z;
+            const r = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+            if (r < 10) { // Only nearby particles contribute
+              const vx = particle.body.velocity.x;
+              const vy = particle.body.velocity.y;
+              const vz = particle.body.velocity.z;
+              const kineticEnergy = 0.5 * particle.body.mass * (vx**2 + vy**2 + vz**2);
+
+              rho += this.kineticCoupling * kineticEnergy / Math.max(r**2, 1);
+            }
+          });
+        }
+
+        // Scalar field energy density: ρ_φ ~ φ²
+        if (phiField) {
+          const phi = phiField.baseline; // Use baseline for position-based calculation
+          rho += this.fieldCoupling * phi * phi / 100;
+        }
+
+        return Math.max(this.baseline, Math.min(this.maxDensity, rho));
+      }
+
+      // Update field values
+      update(blackHoles, particles, phiField) {
+        blackHoles.forEach(bh => {
+          const rho = this.calculate(bh.position, blackHoles, particles, phiField);
+          this.values.set(bh, rho);
+        });
+      }
+
+      // Get color for visualization (red-yellow heat map)
+      getColor(rho) {
+        const normalized = Math.min(1.0, rho / this.maxDensity);
+        return new BABYLON.Color3(
+          1.0,                         // Red: always high
+          0.3 + 0.7 * normalized,     // Green: yellow at high density
+          0.1 * (1 - normalized)      // Blue: minimal (hot colors)
+        );
+      }
+    }
+
+    // ========================================
+    // PSI FIELD (ψ): Quantum Wavefunction Field
+    // ========================================
+    // Complex quantum amplitude field
+    // ψ(x) = |ψ|e^(iθ) with magnitude and phase
+    // Influenced by: Lambda consciousness, helix phase, quantum entanglement
+    // Visual: Cyan-magenta interference fringes showing quantum coherence
+    //
+    class PsiField {
+      constructor() {
+        this.values = new Map(); // bhId → {magnitude, phase}
+
+        // Field parameters
+        this.baseline = { magnitude: 1.0, phase: 0 };
+        this.maxMagnitude = 2.0;
+
+        // Coupling constants
+        this.lambdaCoupling = 0.5;        // Consciousness drives magnitude
+        this.entanglementCoupling = 0.4;  // Wormhole entanglement affects phase
+        this.coherenceCoupling = 0.3;     // Helix coherence stabilizes wavefunction
+      }
+
+      // Calculate wavefunction at a black hole
+      calculate(bh, lambdaState, wormholes, blackHoles) {
+        const current = this.values.get(bh) || this.baseline;
+
+        // Magnitude driven by Lambda consciousness
+        let magnitude = this.lambdaCoupling * lambdaState.coherence +
+                       this.coherenceCoupling * bh.helixState.r;
+
+        // Phase alignment with helix theta
+        let phase = bh.helixState.theta;
+
+        // Entanglement creates phase coherence between connected black holes
+        wormholes.forEach(worm => {
+          if (worm.bh1 === bh || worm.bh2 === bh) {
+            const otherBH = worm.bh1 === bh ? worm.bh2 : worm.bh1;
+            const otherPsi = this.values.get(otherBH) || this.baseline;
+
+            // Entanglement pulls phases together
+            const phaseDiff = otherPsi.phase - phase;
+            phase += this.entanglementCoupling * worm.entanglement * Math.sin(phaseDiff);
+
+            // Magnitude boosted by entanglement
+            magnitude += this.entanglementCoupling * worm.entanglement * otherPsi.magnitude;
+          }
+        });
+
+        // Normalize magnitude
+        magnitude = Math.max(0, Math.min(this.maxMagnitude, magnitude));
+
+        // Wrap phase to [0, 2π]
+        phase = phase % (2 * Math.PI);
+        if (phase < 0) phase += 2 * Math.PI;
+
+        return { magnitude, phase };
+      }
+
+      // Update field values
+      update(blackHoles, lambdaState, wormholes) {
+        blackHoles.forEach(bh => {
+          const psi = this.calculate(bh, lambdaState, wormholes, blackHoles);
+          this.values.set(bh, psi);
+        });
+      }
+
+      // Get color for visualization (cyan-magenta based on phase)
+      getColor(psi) {
+        const { magnitude, phase } = psi;
+
+        // Phase determines hue (cyan → magenta → cyan)
+        // magnitude determines intensity
+        const intensity = magnitude / this.maxMagnitude;
+
+        return new BABYLON.Color3(
+          0.5 + 0.5 * Math.sin(phase) * intensity,      // Red: varies with phase
+          0.3 + 0.3 * Math.cos(phase * 2) * intensity,  // Green: creates cyan/magenta
+          0.8 + 0.2 * Math.cos(phase) * intensity       // Blue: dominant for cyan tones
+        );
+      }
+    }
+
+    // ========================================
+    // UNIFIED FIELD MANAGER
+    // ========================================
+    // Manages all 7 quantum fields and their interactions
+    //
+    class SevenFieldSystem {
+      constructor() {
+        this.tau = new TauField();          // Proper time
+        this.upsilon = new UpsilonField();  // Curvature perturbations
+        this.phi = new PhiField();          // Scalar inflaton
+        this.chi = new ChiField();          // Topological charge
+        this.omega = new OmegaField();      // Angular momentum
+        this.rho = new RhoField();          // Energy density
+        this.psi = new PsiField();          // Quantum wavefunction
+
+        this.enabled = true;
+        this.time = 0;
+      }
+
+      // Update all fields
+      update(deltaTime, blackHoles, lambdaState, wormholes, particles) {
+        if (!this.enabled) return;
+
+        this.time += deltaTime;
+
+        // Update each field with appropriate dependencies
+        this.tau.update(blackHoles);
+        this.upsilon.update(blackHoles, this.time);
+        this.phi.update(blackHoles, lambdaState);
+        this.chi.update(blackHoles, wormholes);
+        this.omega.update(blackHoles);
+        this.rho.update(blackHoles, particles, this.phi);
+        this.psi.update(blackHoles, lambdaState, wormholes);
+      }
+
+      // Get field statistics for display
+      getStats() {
+        return {
+          tau: { name: 'Tau (τ) - Time Flow', active: this.tau.values.size },
+          upsilon: { name: 'Upsilon (υ) - Curvature', active: this.upsilon.values.size },
+          phi: { name: 'Phi (φ) - Scalar Field', active: this.phi.values.size },
+          chi: { name: 'Chi (χ) - Topology', active: this.chi.values.size },
+          omega: { name: 'Omega (Ω) - Angular Mom', active: this.omega.values.size },
+          rho: { name: 'Rho (ρ) - Energy Density', active: this.rho.values.size },
+          psi: { name: 'Psi (ψ) - Wavefunction', active: this.psi.values.size }
+        };
+      }
+
+      // Toggle field system on/off
+      toggle() {
+        this.enabled = !this.enabled;
+        return this.enabled;
+      }
+    }
+
+    // ========================================
     // BLACK HOLE THERMODYNAMICS
     // ========================================
     
@@ -5577,6 +6187,7 @@
         
         // Initialize systems
         this.hilbertField = new HilbertFieldOperator();
+        this.sevenFields = new SevenFieldSystem(); // 7-field quantum system (τ, υ, φ, χ, Ω, ρ, ψ)
         this.blackHole = new BlackHoleMetrics(1.0);
         this.dilationCalculator = new TimeDilationCalculator(this.blackHole);
         this.breathOperator = new BreathHilbertOperator();
@@ -6789,7 +7400,10 @@
         // === 5. LAMBDA CONSCIOUSNESS SPARKS ===
         this.updateLambdaGlow();
 
-        // === 6. MERGER FLASH FADE ===
+        // === 6. 7-FIELD QUANTUM SYSTEM (τ, υ, φ, χ, Ω, ρ, ψ) ===
+        this.update7FieldGlow();
+
+        // === 7. MERGER FLASH FADE ===
         this.updateMergerFlash();
       }
 
@@ -7039,7 +7653,206 @@
           this.planckGrid.material.opacity = 0.2 + 0.3 * structureIntensity;
         }
       }
-      
+
+      // ========================================
+      // 7-FIELD QUANTUM SYSTEM VISUALIZATION
+      // ========================================
+      // Visualize all 7 quantum fields (τ, υ, φ, χ, Ω, ρ, ψ) through black hole auras
+      // Each field adds a colored glow layer representing its value
+      //
+      update7FieldGlow() {
+        if (!this.sevenFields || !this.sevenFields.enabled) return;
+        if (!this.physicsWorld || !this.physicsWorld.blackHoles) return;
+
+        this.physicsWorld.blackHoles.forEach((bh, index) => {
+          // Create field aura meshes if they don't exist
+          if (!bh.fieldAuras) {
+            bh.fieldAuras = {};
+          }
+
+          // === 1. TAU FIELD (τ) - Proper Time ===
+          // Blue (slow time) → Red (fast time)
+          const tau = this.sevenFields.tau.values.get(bh);
+          if (tau !== undefined) {
+            if (!bh.fieldAuras.tau) {
+              bh.fieldAuras.tau = BABYLON.MeshBuilder.CreateSphere(
+                `tau_aura_${index}`,
+                { diameter: 12, segments: 16 },
+                this.scene
+              );
+              const tauMat = new BABYLON.StandardMaterial(`tauMat_${index}`, this.scene);
+              tauMat.alpha = 0.15;
+              tauMat.disableLighting = true;
+              bh.fieldAuras.tau.material = tauMat;
+            }
+
+            bh.fieldAuras.tau.position = new BABYLON.Vector3(
+              bh.position.x, bh.position.y, bh.position.z
+            );
+            bh.fieldAuras.tau.material.emissiveColor = this.sevenFields.tau.getColor(tau);
+          }
+
+          // === 2. UPSILON FIELD (υ) - Curvature Perturbations ===
+          // Green-cyan gradient showing spacetime waves
+          const upsilon = this.sevenFields.upsilon.values.get(bh);
+          if (upsilon !== undefined) {
+            if (!bh.fieldAuras.upsilon) {
+              bh.fieldAuras.upsilon = BABYLON.MeshBuilder.CreateSphere(
+                `upsilon_aura_${index}`,
+                { diameter: 10, segments: 16 },
+                this.scene
+              );
+              const upsilonMat = new BABYLON.StandardMaterial(`upsilonMat_${index}`, this.scene);
+              upsilonMat.alpha = 0.2;
+              upsilonMat.disableLighting = true;
+              bh.fieldAuras.upsilon.material = upsilonMat;
+            }
+
+            bh.fieldAuras.upsilon.position = new BABYLON.Vector3(
+              bh.position.x, bh.position.y, bh.position.z
+            );
+            bh.fieldAuras.upsilon.material.emissiveColor = this.sevenFields.upsilon.getColor(upsilon);
+
+            // Pulsate with curvature waves
+            const waveFactor = 1.0 + 0.1 * upsilon;
+            bh.fieldAuras.upsilon.scaling = new BABYLON.Vector3(waveFactor, waveFactor, waveFactor);
+          }
+
+          // === 3. PHI FIELD (φ) - Scalar Inflaton ===
+          // Golden glow showing vacuum energy
+          const phi = this.sevenFields.phi.values.get(bh);
+          if (phi !== undefined) {
+            if (!bh.fieldAuras.phi) {
+              bh.fieldAuras.phi = BABYLON.MeshBuilder.CreateSphere(
+                `phi_aura_${index}`,
+                { diameter: 8, segments: 16 },
+                this.scene
+              );
+              const phiMat = new BABYLON.StandardMaterial(`phiMat_${index}`, this.scene);
+              phiMat.alpha = 0.25;
+              phiMat.disableLighting = true;
+              bh.fieldAuras.phi.material = phiMat;
+            }
+
+            bh.fieldAuras.phi.position = new BABYLON.Vector3(
+              bh.position.x, bh.position.y, bh.position.z
+            );
+            bh.fieldAuras.phi.material.emissiveColor = this.sevenFields.phi.getColor(phi);
+          }
+
+          // === 4. CHI FIELD (χ) - Topological Charge ===
+          // Violet vortex showing winding number
+          const chi = this.sevenFields.chi.values.get(bh);
+          if (chi !== undefined && chi > 0) {
+            if (!bh.fieldAuras.chi) {
+              bh.fieldAuras.chi = BABYLON.MeshBuilder.CreateTorus(
+                `chi_aura_${index}`,
+                { diameter: 6, thickness: 0.5, tessellation: 32 },
+                this.scene
+              );
+              const chiMat = new BABYLON.StandardMaterial(`chiMat_${index}`, this.scene);
+              chiMat.alpha = 0.4;
+              chiMat.disableLighting = true;
+              bh.fieldAuras.chi.material = chiMat;
+            }
+
+            bh.fieldAuras.chi.position = new BABYLON.Vector3(
+              bh.position.x, bh.position.y, bh.position.z
+            );
+            bh.fieldAuras.chi.material.emissiveColor = this.sevenFields.chi.getColor(chi);
+
+            // Rotate based on topological charge
+            bh.fieldAuras.chi.rotation.y += chi * 0.01;
+          }
+
+          // === 5. OMEGA FIELD (Ω) - Angular Momentum ===
+          // Orange spiral showing rotation
+          const omega = this.sevenFields.omega.values.get(bh);
+          if (omega !== undefined) {
+            const omegaMag = Math.sqrt(omega.x**2 + omega.y**2 + omega.z**2);
+
+            if (omegaMag > 0.1 && !bh.fieldAuras.omega) {
+              // Create spiral lines showing angular momentum
+              bh.fieldAuras.omega = BABYLON.MeshBuilder.CreateTorus(
+                `omega_aura_${index}`,
+                { diameter: 14, thickness: 0.3, tessellation: 32 },
+                this.scene
+              );
+              const omegaMat = new BABYLON.StandardMaterial(`omegaMat_${index}`, this.scene);
+              omegaMat.alpha = 0.3;
+              omegaMat.disableLighting = true;
+              bh.fieldAuras.omega.material = omegaMat;
+            }
+
+            if (bh.fieldAuras.omega) {
+              bh.fieldAuras.omega.position = new BABYLON.Vector3(
+                bh.position.x, bh.position.y, bh.position.z
+              );
+              bh.fieldAuras.omega.material.emissiveColor = this.sevenFields.omega.getColor(omega);
+
+              // Rotate based on angular momentum direction
+              if (Math.abs(omega.z) > 0.01) {
+                bh.fieldAuras.omega.rotation.z += omega.z * 0.01;
+              }
+            }
+          }
+
+          // === 6. RHO FIELD (ρ) - Energy Density ===
+          // Red-yellow heat map
+          const rho = this.sevenFields.rho.values.get(bh);
+          if (rho !== undefined) {
+            if (!bh.fieldAuras.rho) {
+              bh.fieldAuras.rho = BABYLON.MeshBuilder.CreateSphere(
+                `rho_aura_${index}`,
+                { diameter: 7, segments: 16 },
+                this.scene
+              );
+              const rhoMat = new BABYLON.StandardMaterial(`rhoMat_${index}`, this.scene);
+              rhoMat.alpha = 0.2;
+              rhoMat.disableLighting = true;
+              bh.fieldAuras.rho.material = rhoMat;
+            }
+
+            bh.fieldAuras.rho.position = new BABYLON.Vector3(
+              bh.position.x, bh.position.y, bh.position.z
+            );
+            bh.fieldAuras.rho.material.emissiveColor = this.sevenFields.rho.getColor(rho);
+
+            // Scale with energy density
+            const rhoNormalized = Math.min(1.0, rho / this.sevenFields.rho.maxDensity);
+            const rhoScale = 1.0 + 0.5 * rhoNormalized;
+            bh.fieldAuras.rho.scaling = new BABYLON.Vector3(rhoScale, rhoScale, rhoScale);
+          }
+
+          // === 7. PSI FIELD (ψ) - Quantum Wavefunction ===
+          // Cyan-magenta interference fringes
+          const psi = this.sevenFields.psi.values.get(bh);
+          if (psi !== undefined) {
+            if (!bh.fieldAuras.psi) {
+              bh.fieldAuras.psi = BABYLON.MeshBuilder.CreateSphere(
+                `psi_aura_${index}`,
+                { diameter: 9, segments: 16 },
+                this.scene
+              );
+              const psiMat = new BABYLON.StandardMaterial(`psiMat_${index}`, this.scene);
+              psiMat.alpha = 0.18;
+              psiMat.disableLighting = true;
+              psiMat.wireframe = true; // Interference pattern effect
+              bh.fieldAuras.psi.material = psiMat;
+            }
+
+            bh.fieldAuras.psi.position = new BABYLON.Vector3(
+              bh.position.x, bh.position.y, bh.position.z
+            );
+            bh.fieldAuras.psi.material.emissiveColor = this.sevenFields.psi.getColor(psi);
+
+            // Oscillate with quantum phase
+            const psiPulse = 1.0 + 0.15 * Math.sin(psi.phase);
+            bh.fieldAuras.psi.scaling = new BABYLON.Vector3(psiPulse, psiPulse, psiPulse);
+          }
+        });
+      }
+
       // Adaptive performance optimization
       updatePerformance() {
         if (!this.performanceMonitor.adaptiveQuality) return;
@@ -7269,6 +8082,15 @@
 
           // Update Hilbert field evolution
           this.hilbertField.applyResonanceOperator(deltaTime, 0.1);
+
+          // Update 7-field quantum system (τ, υ, φ, χ, Ω, ρ, ψ)
+          this.sevenFields.update(
+            deltaTime,
+            this.physicsWorld.blackHoles,
+            this.lambdaState,
+            this.physicsWorld.wormholes,
+            this.physicsWorld.particles
+          );
 
           // Step physics simulation (test particles + entropic forces)
           this.physicsWorld.step(Math.min(deltaTime, 1/30)); // Clamp to prevent instability
