@@ -1793,46 +1793,36 @@
         // ========================================
         // LAYER 5: PERIPHERAL (24 black holes)
         // Long-term memory storage - smallest mass
-        // Arranged on truncated octahedron vertices
+        // Arranged on truncated octahedron vertices (24 vertices)
         // ========================================
         const layer5Radius = 650;
-        const layer5Vertices = [];
+        const layer5Vertices = [
+          // 6 vertices on axes (±2, 0, 0) etc.
+          [2, 0, 0], [-2, 0, 0],
+          [0, 2, 0], [0, -2, 0],
+          [0, 0, 2], [0, 0, -2],
+          // 8 vertices at corners (±1, ±1, ±1)
+          [1, 1, 1], [1, 1, -1], [1, -1, 1], [1, -1, -1],
+          [-1, 1, 1], [-1, 1, -1], [-1, -1, 1], [-1, -1, -1],
+          // 12 vertices on edge midpoints - permutations of (±1, ±1, 0)
+          [1, 1, 0], [1, -1, 0], [-1, 1, 0], [-1, -1, 0],
+          [1, 0, 1], [1, 0, -1], [-1, 0, 1], [-1, 0, -1],
+          [0, 1, 1], [0, 1, -1], [0, -1, 1], [0, -1, -1]
+        ];
 
-        // 6 vertices at ±2 on each axis
-        for (let axis = 0; axis < 3; axis++) {
-          for (let sign of [-1, 1]) {
-            const v = [0, 0, 0];
-            v[axis] = sign * 2;
-            layer5Vertices.push(v);
-          }
-        }
+        console.log(`   Layer 5: Creating ${layer5Vertices.length} peripheral nodes...`);
 
-        // 18 vertices at permutations of (±1, ±1, 0)
-        for (let i = 0; i < 3; i++) {
-          for (let sx of [-1, 1]) {
-            for (let sy of [-1, 1]) {
-              const v = [0, 0, 0];
-              v[i] = 0;
-              v[(i + 1) % 3] = sx;
-              v[(i + 2) % 3] = sy;
-              layer5Vertices.push(v);
-            }
-          }
-        }
-
-        layer5Vertices.forEach(v => {
+        layer5Vertices.forEach((v, idx) => {
           const len = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
-          if (len > 0) {
-            const bh = this.createBlackHoleNode(
-              {
-                x: (v[0] / len) * layer5Radius,
-                y: (v[1] / len) * layer5Radius,
-                z: (v[2] / len) * layer5Radius
-              },
-              0.75 // 0.75 solar masses
-            );
-            this.blackHoles.push(bh);
-          }
+          const bh = this.createBlackHoleNode(
+            {
+              x: (v[0] / len) * layer5Radius,
+              y: (v[1] / len) * layer5Radius,
+              z: (v[2] / len) * layer5Radius
+            },
+            0.75 // 0.75 solar masses
+          );
+          this.blackHoles.push(bh);
         });
 
         console.log(`✅ Created ${this.blackHoles.length} black hole memory nodes`);
@@ -1888,11 +1878,35 @@
 
         // Initialize all wormholes with baseline entanglement for LIMNUS mode
         // This ensures they're visible regardless of Lambda state
-        this.wormholes.forEach(wormhole => {
-          wormhole.entanglement = 0.6; // Strong baseline for neural network visualization
-          wormhole.updateVisual(); // Force initial rendering
+        console.log(`🌀 Rendering wormhole visualizations...`);
+        let successCount = 0;
+        let failCount = 0;
+
+        this.wormholes.forEach((wormhole, idx) => {
+          try {
+            wormhole.entanglement = 0.6; // Strong baseline for neural network visualization
+            wormhole.updateVisual(); // Force initial rendering
+
+            if (wormhole.tubeMesh) {
+              successCount++;
+            } else {
+              failCount++;
+              console.warn(`⚠️ Wormhole ${idx} failed to create mesh`);
+            }
+          } catch (error) {
+            failCount++;
+            console.error(`❌ Wormhole ${idx} rendering error:`, error);
+          }
         });
-        console.log(`✅ Rendered ${this.wormholes.length} wormhole visualizations`);
+
+        console.log(`✅ Rendered ${successCount} wormhole visualizations (${failCount} failed)`);
+
+        // Debug: List all wormhole meshes in scene
+        const wormholeMeshes = this.scene.meshes.filter(m => m.name && m.name.startsWith('wormhole_'));
+        console.log(`🔍 Scene contains ${wormholeMeshes.length} wormhole meshes`);
+        if (wormholeMeshes.length > 0) {
+          console.log(`   First wormhole mesh:`, wormholeMeshes[0].name, 'visible:', wormholeMeshes[0].isVisible);
+        }
 
         // ========================================
         // SPAWN 1000 THOUGHT PARTICLES
@@ -2200,7 +2214,9 @@
         }
 
         // Only draw if entanglement is significant (>0.1)
-        if (this.entanglement < 0.1) return;
+        if (this.entanglement < 0.1) {
+          return;
+        }
 
         // Create curved path between black holes
         const start = new BABYLON.Vector3(
@@ -2237,17 +2253,28 @@
 
         // Create tube mesh
         const radius = 2 + this.entanglement * 8; // Thicker when more entangled
-        this.tubeMesh = BABYLON.MeshBuilder.CreateTube(
-          'wormhole',
-          {
-            path: path,
-            radius: radius,
-            tessellation: 16,
-            cap: BABYLON.Mesh.CAP_ALL,
-            updatable: false
-          },
-          this.scene
-        );
+
+        try {
+          this.tubeMesh = BABYLON.MeshBuilder.CreateTube(
+            'wormhole_' + Math.random().toString(36).substr(2, 9),
+            {
+              path: path,
+              radius: radius,
+              tessellation: 16,
+              cap: BABYLON.Mesh.CAP_ALL,
+              updatable: false
+            },
+            this.scene
+          );
+
+          if (!this.tubeMesh) {
+            console.error('CreateTube returned null/undefined');
+            return;
+          }
+        } catch (error) {
+          console.error('CreateTube failed:', error);
+          return;
+        }
 
         // Material: Cyan-purple neural connection glow
         const material = new BABYLON.StandardMaterial('wormholeMat_' + Math.random(), this.scene);
