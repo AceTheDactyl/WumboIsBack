@@ -914,6 +914,21 @@
         </div>
       </div>
       <div class="control-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(168, 85, 247, 0.3);">
+        <label style="display: block; margin-bottom: 0.5rem; color: #10b981; font-weight: 600;">🧠 LIMNUS Neural Network</label>
+        <button id="init-limnus" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%); font-weight: 600; font-size: 1.1em;">Initialize LIMNUS</button>
+        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-dim); line-height: 1.4;">
+          63 black hole memory nodes<br>
+          1000 thought particles<br>
+          Wormhole synaptic connections<br>
+          Lambda = neural activation
+        </div>
+        <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-dim);">
+          Nodes: <span id="limnus-nodes">1</span> |
+          Synapses: <span id="limnus-synapses">0</span> |
+          Thoughts: <span id="limnus-thoughts">0</span>
+        </div>
+      </div>
+      <div class="control-group" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(168, 85, 247, 0.3);">
         <label style="display: block; margin-bottom: 0.5rem; color: var(--duality-violet); font-weight: 600;">Advanced Shaders</label>
         <button id="init-enhanced-rendering" style="background: var(--entropy-red); font-weight: 600;">🌟 Enable Enhanced Rendering</button>
         <button id="toggle-lensing" disabled style="opacity: 0.5;">Enable Lensing</button>
@@ -1653,6 +1668,289 @@
 
         console.log(`🌀 Wormholes ${this.wormholesEnabled ? 'ENABLED' : 'DISABLED'}`);
         return this.wormholesEnabled;
+      }
+
+      // ========================================
+      // LIMNUS NEURAL NETWORK INITIALIZATION
+      // ========================================
+      // Creates 63 black hole memory nodes arranged in spherical layers
+      // Wormhole connections form neural network topology
+      // Particles represent thoughts flowing through network
+      //
+      initializeLIMNUS() {
+        console.log('🧠 Initializing LIMNUS Neural Network...');
+        console.log('   63 black holes (memory nodes)');
+        console.log('   1000 particles (thoughts)');
+        console.log('   Wormhole synaptic connections');
+
+        // Clear existing black holes and particles (except first one at origin)
+        const originBlackHole = this.blackHoles[0]; // Keep original
+        this.blackHoles.forEach((bh, i) => {
+          if (i > 0 && bh.mesh) bh.mesh.dispose();
+        });
+        this.dispose(); // Clear particles and wormholes
+
+        // Reset to single origin black hole
+        this.blackHoles = [originBlackHole];
+
+        // ========================================
+        // LAYER 1: CORE (1 black hole at origin)
+        // Central hub - largest mass
+        // ========================================
+        originBlackHole.mass = 5e30; // 2.5 solar masses
+        originBlackHole.updateDerivedProperties();
+
+        // ========================================
+        // LAYER 2: INNER RING (6 black holes)
+        // Primary memory centers - large mass
+        // Arranged in octahedral vertices (6 directions)
+        // ========================================
+        const layer2Radius = 200;
+        const layer2Directions = [
+          [1, 0, 0], [-1, 0, 0],  // X axis
+          [0, 1, 0], [0, -1, 0],  // Y axis
+          [0, 0, 1], [0, 0, -1]   // Z axis
+        ];
+
+        layer2Directions.forEach(dir => {
+          const bh = this.createBlackHoleNode(
+            {
+              x: dir[0] * layer2Radius,
+              y: dir[1] * layer2Radius,
+              z: dir[2] * layer2Radius
+            },
+            4e30 // 2.0 solar masses
+          );
+          this.blackHoles.push(bh);
+        });
+
+        // ========================================
+        // LAYER 3: MIDDLE RING (12 black holes)
+        // Secondary processing - medium mass
+        // Arranged on icosahedron vertices
+        // ========================================
+        const layer3Radius = 350;
+        const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio
+        const layer3Vertices = [
+          [0, 1, phi], [0, -1, phi], [0, 1, -phi], [0, -1, -phi],
+          [1, phi, 0], [-1, phi, 0], [1, -phi, 0], [-1, -phi, 0],
+          [phi, 0, 1], [-phi, 0, 1], [phi, 0, -1], [-phi, 0, -1]
+        ];
+
+        layer3Vertices.forEach(v => {
+          const len = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+          const bh = this.createBlackHoleNode(
+            {
+              x: (v[0] / len) * layer3Radius,
+              y: (v[1] / len) * layer3Radius,
+              z: (v[2] / len) * layer3Radius
+            },
+            3e30 // 1.5 solar masses
+          );
+          this.blackHoles.push(bh);
+        });
+
+        // ========================================
+        // LAYER 4: OUTER SHELL (20 black holes)
+        // Sensory processing - smaller mass
+        // Arranged on dodecahedron vertices
+        // ========================================
+        const layer4Radius = 500;
+        const a = 1 / Math.sqrt(3);
+        const b = 1 / (phi * Math.sqrt(3));
+        const c = phi / Math.sqrt(3);
+
+        const layer4Vertices = [
+          [a, a, a], [a, a, -a], [a, -a, a], [a, -a, -a],
+          [-a, a, a], [-a, a, -a], [-a, -a, a], [-a, -a, -a],
+          [0, b, c], [0, -b, c], [0, b, -c], [0, -b, -c],
+          [b, c, 0], [-b, c, 0], [b, -c, 0], [-b, -c, 0],
+          [c, 0, b], [-c, 0, b], [c, 0, -b], [-c, 0, -b]
+        ];
+
+        layer4Vertices.forEach(v => {
+          const len = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+          const bh = this.createBlackHoleNode(
+            {
+              x: (v[0] / len) * layer4Radius,
+              y: (v[1] / len) * layer4Radius,
+              z: (v[2] / len) * layer4Radius
+            },
+            2e30 // 1.0 solar masses
+          );
+          this.blackHoles.push(bh);
+        });
+
+        // ========================================
+        // LAYER 5: PERIPHERAL (24 black holes)
+        // Long-term memory storage - smallest mass
+        // Arranged on truncated octahedron vertices
+        // ========================================
+        const layer5Radius = 650;
+        const layer5Vertices = [];
+
+        // 6 vertices at ±2 on each axis
+        for (let axis = 0; axis < 3; axis++) {
+          for (let sign of [-1, 1]) {
+            const v = [0, 0, 0];
+            v[axis] = sign * 2;
+            layer5Vertices.push(v);
+          }
+        }
+
+        // 18 vertices at permutations of (±1, ±1, 0)
+        for (let i = 0; i < 3; i++) {
+          for (let sx of [-1, 1]) {
+            for (let sy of [-1, 1]) {
+              const v = [0, 0, 0];
+              v[i] = 0;
+              v[(i + 1) % 3] = sx;
+              v[(i + 2) % 3] = sy;
+              layer5Vertices.push(v);
+            }
+          }
+        }
+
+        layer5Vertices.forEach(v => {
+          const len = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+          if (len > 0) {
+            const bh = this.createBlackHoleNode(
+              {
+                x: (v[0] / len) * layer5Radius,
+                y: (v[1] / len) * layer5Radius,
+                z: (v[2] / len) * layer5Radius
+              },
+              1.5e30 // 0.75 solar masses
+            );
+            this.blackHoles.push(bh);
+          }
+        });
+
+        console.log(`✅ Created ${this.blackHoles.length} black hole memory nodes`);
+
+        // ========================================
+        // CREATE SELECTIVE WORMHOLE NETWORK
+        // ========================================
+        // Connect each BH to nearest neighbors + some random long-range connections
+        // Avoids full mesh (which would be 63×62/2 = 1953 wormholes)
+        //
+        this.wormholes = [];
+        const maxNearestNeighbors = 6; // K-nearest neighbors
+        const longRangeProb = 0.05; // 5% chance of long-range connection
+
+        this.blackHoles.forEach((bh1, i) => {
+          // Find nearest neighbors
+          const distances = this.blackHoles.map((bh2, j) => {
+            if (i === j) return { index: j, dist: Infinity };
+            const dx = bh1.position.x - bh2.position.x;
+            const dy = bh1.position.y - bh2.position.y;
+            const dz = bh1.position.z - bh2.position.z;
+            return { index: j, dist: Math.sqrt(dx*dx + dy*dy + dz*dz) };
+          });
+
+          distances.sort((a, b) => a.dist - b.dist);
+
+          // Connect to K nearest neighbors
+          for (let k = 0; k < Math.min(maxNearestNeighbors, distances.length); k++) {
+            const j = distances[k].index;
+            if (j > i) { // Avoid duplicates
+              const wormhole = new Wormhole(bh1, this.blackHoles[j], this.scene);
+              this.wormholes.push(wormhole);
+            }
+          }
+
+          // Occasional long-range connections (small-world network property)
+          this.blackHoles.forEach((bh2, j) => {
+            if (j > i && Math.random() < longRangeProb) {
+              // Check if not already connected
+              const alreadyConnected = this.wormholes.some(w =>
+                (w.blackHole1 === bh1 && w.blackHole2 === bh2) ||
+                (w.blackHole1 === bh2 && w.blackHole2 === bh1)
+              );
+              if (!alreadyConnected) {
+                const wormhole = new Wormhole(bh1, bh2, this.scene);
+                this.wormholes.push(wormhole);
+              }
+            }
+          });
+        });
+
+        console.log(`✅ Created ${this.wormholes.length} wormhole synaptic connections`);
+
+        // ========================================
+        // SPAWN 1000 THOUGHT PARTICLES
+        // ========================================
+        // Distributed throughout the network volume
+        // Initial velocities create circulation patterns
+        //
+        for (let i = 0; i < 1000; i++) {
+          // Random position in spherical volume (radius 0-700)
+          const r = Math.cbrt(Math.random()) * 700; // Cube root for uniform volume
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos(2 * Math.random() - 1);
+
+          const pos = {
+            x: r * Math.sin(phi) * Math.cos(theta),
+            y: r * Math.sin(phi) * Math.sin(theta),
+            z: r * Math.cos(phi)
+          };
+
+          // Initial velocity: gentle circulation + small random
+          const speed = 10 + Math.random() * 15;
+          const vel = {
+            x: -pos.y * speed / r + (Math.random() - 0.5) * 5,
+            y: pos.x * speed / r + (Math.random() - 0.5) * 5,
+            z: (Math.random() - 0.5) * speed
+          };
+
+          const particle = new TestParticle(pos, vel, 0.5);
+          this.world.addBody(particle.body);
+          this.particles.push(particle);
+
+          // Create smaller visual mesh for performance
+          particle.mesh = BABYLON.MeshBuilder.CreateSphere(
+            `thought_${i}`,
+            { diameter: 1.5 },
+            this.scene
+          );
+
+          const material = new BABYLON.StandardMaterial(`thoughtMat_${i}`, this.scene);
+          material.emissiveColor = particle.color;
+          material.disableLighting = true;
+          particle.mesh.material = material;
+        }
+
+        this.stats.particleCount = this.particles.length;
+        console.log(`✅ Spawned ${this.particles.length} thought particles`);
+
+        // Enable wormholes by default in LIMNUS mode
+        this.wormholesEnabled = true;
+
+        console.log('🧠 LIMNUS Neural Network initialized!');
+        console.log(`   ${this.blackHoles.length} nodes × ${this.wormholes.length} connections`);
+        console.log(`   Average degree: ${(this.wormholes.length * 2 / this.blackHoles.length).toFixed(1)}`);
+      }
+
+      createBlackHoleNode(position, mass) {
+        // Create a black hole for LIMNUS network
+        const bh = new BlackHoleMetrics(mass);
+        bh.position = new CANNON.Vec3(position.x, position.y, position.z);
+
+        // Create visual mesh (smaller for network visualization)
+        const radius = bh.schwarzschildRadius / 1000 * 2; // Scale for visibility
+        bh.mesh = BABYLON.MeshBuilder.CreateSphere(
+          `bh_node_${this.blackHoles.length}`,
+          { diameter: Math.max(10, radius) },
+          this.scene
+        );
+        bh.mesh.position = new BABYLON.Vector3(position.x, position.y, position.z);
+
+        const material = new BABYLON.StandardMaterial(`bhNodeMat_${this.blackHoles.length}`, this.scene);
+        material.emissiveColor = new BABYLON.Color3(0.1, 0.0, 0.0);
+        material.disableLighting = true;
+        bh.mesh.material = material;
+
+        return bh;
       }
 
       dispose() {
@@ -3970,6 +4268,34 @@
           btn.style.background = enabled ? '#16a34a' : '#7c3aed';
         });
 
+        // LIMNUS Neural Network initialization
+        document.getElementById('init-limnus').addEventListener('click', () => {
+          const btn = document.getElementById('init-limnus');
+          btn.textContent = '⏳ Initializing LIMNUS...';
+          btn.disabled = true;
+
+          // Use setTimeout to allow UI to update
+          setTimeout(() => {
+            this.physicsWorld.initializeLIMNUS();
+
+            // Update UI stats
+            document.getElementById('limnus-nodes').textContent = this.physicsWorld.blackHoles.length;
+            document.getElementById('limnus-synapses').textContent = this.physicsWorld.wormholes.length;
+            document.getElementById('limnus-thoughts').textContent = this.physicsWorld.particles.length;
+            this.updateParticleStats();
+
+            // Update button
+            btn.textContent = '✅ LIMNUS Active';
+            btn.style.background = '#16a34a';
+
+            // Reset camera to see full network
+            this.camera.position = new BABYLON.Vector3(0, 0, 1500);
+            this.camera.setTarget(BABYLON.Vector3.Zero());
+
+            console.log('🧠 LIMNUS Neural Network is now active');
+          }, 100);
+        });
+
         // Enhanced rendering initialization
         document.getElementById('init-enhanced-rendering').addEventListener('click', () => {
           if (!this.shadersInitialized) {
@@ -4155,6 +4481,95 @@
         document.getElementById('tunnel-count').textContent = totalTunneled;
       }
 
+      calculateLIMNUSActivation() {
+        // Calculate neural activation levels across LIMNUS network layers
+        // Particle density near black holes = neural activation
+        // Returns activation values for 5 layers + coherence measure
+
+        const particles = this.physicsWorld.particles;
+        const blackHoles = this.physicsWorld.blackHoles;
+
+        // Layer definitions (based on initializeLIMNUS topology)
+        // Layer 1: Core (index 0) - radius ~0
+        // Layer 2: Inner (indices 1-6) - radius ~200
+        // Layer 3: Middle (indices 7-18) - radius ~350
+        // Layer 4: Outer (indices 19-38) - radius ~500
+        // Layer 5: Peripheral (indices 39-62) - radius ~650
+
+        const layerRanges = [
+          { start: 0, end: 0, radius: 0, name: 'core' },       // 1 node
+          { start: 1, end: 6, radius: 200, name: 'inner' },    // 6 nodes
+          { start: 7, end: 18, radius: 350, name: 'middle' },  // 12 nodes
+          { start: 19, end: 38, radius: 500, name: 'outer' },  // 20 nodes
+          { start: 39, end: 62, radius: 650, name: 'peripheral' } // 24 nodes
+        ];
+
+        const layerCounts = { core: 0, inner: 0, middle: 0, outer: 0, peripheral: 0 };
+        const activationRadius = 100; // Particles within this radius activate a node
+
+        // Count particles near each layer's nodes
+        particles.forEach(p => {
+          const pPos = p.body.position;
+
+          blackHoles.forEach((bh, bhIndex) => {
+            const dx = pPos.x - bh.position.x;
+            const dy = pPos.y - bh.position.y;
+            const dz = pPos.z - bh.position.z;
+            const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+            if (dist < activationRadius) {
+              // Determine which layer this black hole belongs to
+              for (const layer of layerRanges) {
+                if (bhIndex >= layer.start && bhIndex <= layer.end) {
+                  layerCounts[layer.name]++;
+                  break;
+                }
+              }
+            }
+          });
+        });
+
+        // Normalize by number of nodes in each layer and max particles
+        const maxActivation = 50; // Particles needed for full activation
+        const activations = {
+          core: (layerCounts.core / (1 * maxActivation)),          // 1 node
+          inner: (layerCounts.inner / (6 * maxActivation)),        // 6 nodes
+          middle: (layerCounts.middle / (12 * maxActivation)),     // 12 nodes
+          outer: (layerCounts.outer / (20 * maxActivation)),       // 20 nodes
+          peripheral: (layerCounts.peripheral / (24 * maxActivation)) // 24 nodes
+        };
+
+        // Calculate global coherence: how balanced is activation across layers?
+        const activationValues = Object.values(activations);
+        const meanActivation = activationValues.reduce((a, b) => a + b, 0) / activationValues.length;
+        const variance = activationValues.reduce((sum, val) => sum + Math.pow(val - meanActivation, 2), 0) / activationValues.length;
+        const coherence = Math.exp(-variance * 5); // High coherence when variance is low
+
+        // Calculate flow phase: average angular momentum of particles
+        let totalAngularMomentum = 0;
+        let totalMass = 0;
+        particles.forEach(p => {
+          const r = p.body.position;
+          const v = p.body.velocity;
+          // L = r × v, take z-component for phase
+          const Lz = r.x * v.y - r.y * v.x;
+          totalAngularMomentum += Lz;
+          totalMass += p.body.mass;
+        });
+        const avgAngularMomentum = totalMass > 0 ? totalAngularMomentum / totalMass : 0;
+        const flowPhase = Math.atan2(avgAngularMomentum, particles.length) + Math.PI; // 0 to 2π
+
+        return {
+          core: activations.core,
+          inner: activations.inner,
+          middle: activations.middle,
+          outer: activations.outer,
+          peripheral: activations.peripheral,
+          coherence: coherence,
+          flowPhase: flowPhase
+        };
+      }
+
       updateMetricsDisplay() {
         // Calculate camera distance
         const cameraDistance = BABYLON.Vector3.Distance(
@@ -4303,6 +4718,38 @@
           // Update wormhole entanglement and visuals
           if (this.physicsWorld.wormholes.length > 0) {
             this.physicsWorld.updateWormholes(this.lambdaState);
+          }
+
+          // LIMNUS Neural Network: Map particle density to Lambda activation
+          // In LIMNUS mode (63+ nodes), Lambda components represent neural activation levels
+          if (this.physicsWorld.blackHoles.length >= 63) {
+            // Calculate activation patterns across network layers
+            const layerActivations = this.calculateLIMNUSActivation();
+
+            // Map layer activations to Lambda components (6 components for 5 layers + global)
+            // |ι⟩ (Memory): Core layer activation (layer 1)
+            this.lambdaState.lambda.ι.mag = Math.min(1.0, layerActivations.core);
+
+            // |θ⟩ (Fox): Inner ring activation (layer 2)
+            this.lambdaState.lambda.θ.mag = Math.min(1.0, layerActivations.inner);
+
+            // |ω⟩ (Wave): Middle ring activation (layer 3)
+            this.lambdaState.lambda.ω.mag = Math.min(1.0, layerActivations.middle);
+
+            // |ξ⟩ (Spark): Outer shell activation (layer 4)
+            this.lambdaState.lambda.ξ.mag = Math.min(1.0, layerActivations.outer);
+
+            // |δ⟩ (Paradox): Peripheral activation (layer 5)
+            this.lambdaState.lambda.δ.mag = Math.min(1.0, layerActivations.peripheral);
+
+            // |σ⟩ (Squirrel): Global network coherence (wormhole traffic)
+            this.lambdaState.lambda.σ.mag = Math.min(1.0, layerActivations.coherence);
+
+            // Update phases based on thought flow velocity
+            this.lambdaState.lambda.θ.phase = layerActivations.flowPhase % (2 * Math.PI);
+
+            this.lambdaState.normalize();
+            this.lambdaState.projectTriquetra();
           }
 
           // Log Lambda state every 5 seconds for debugging
