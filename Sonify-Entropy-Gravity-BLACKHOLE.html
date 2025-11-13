@@ -918,7 +918,7 @@
         <button id="init-limnus" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%); font-weight: 600; font-size: 1.1em;">Initialize LIMNUS</button>
         <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-dim); line-height: 1.4;">
           63 black hole memory nodes<br>
-          1000 thought particles<br>
+          400 thought particles<br>
           Wormhole synaptic connections<br>
           Lambda = neural activation
         </div>
@@ -1646,13 +1646,15 @@
             // In LIMNUS mode, maintain constant high entanglement for neural network visualization
             // This makes the network structure always visible
             wormhole.entanglement = 0.6; // Fixed strong connection
+            // Don't update visual every frame in LIMNUS - already rendered once at init
           } else {
             // Normal mode: entanglement varies with Lambda state
             wormhole.updateEntanglement(lambdaState);
-          }
 
-          if (this.wormholesEnabled) {
-            wormhole.updateVisual();
+            // Only update visual in non-LIMNUS mode
+            if (this.wormholesEnabled) {
+              wormhole.updateVisual();
+            }
           }
         });
       }
@@ -1690,7 +1692,7 @@
       initializeLIMNUS() {
         console.log('🧠 Initializing LIMNUS Neural Network...');
         console.log('   63 black holes (memory nodes)');
-        console.log('   1000 particles (thoughts)');
+        console.log('   400 particles (thoughts) - optimized for performance');
         console.log('   Wormhole synaptic connections');
 
         // Clear existing black holes and particles (except first one at origin)
@@ -1909,12 +1911,12 @@
         }
 
         // ========================================
-        // SPAWN 1000 THOUGHT PARTICLES
+        // SPAWN 400 THOUGHT PARTICLES (reduced for performance)
         // ========================================
         // Distributed throughout the network volume
         // Initial velocities create circulation patterns
         //
-        for (let i = 0; i < 1000; i++) {
+        for (let i = 0; i < 400; i++) {
           // Random position in spherical volume (radius 0-700)
           const r = Math.cbrt(Math.random()) * 700; // Cube root for uniform volume
           const theta = Math.random() * Math.PI * 2;
@@ -2205,7 +2207,7 @@
         this.entanglement = Math.max(0, Math.min(1, this.entanglement));
       }
 
-      // Update visual representation
+      // Update visual representation (optimized for performance)
       updateVisual() {
         // Dispose old mesh
         if (this.tubeMesh) {
@@ -2218,7 +2220,7 @@
           return;
         }
 
-        // Create curved path between black holes
+        // Create simple line path between black holes (no curves for performance)
         const start = new BABYLON.Vector3(
           this.bh1.position.x,
           this.bh1.position.y,
@@ -2231,69 +2233,36 @@
           this.bh2.position.z
         );
 
-        // Midpoint with vertical offset (creates arc)
-        const mid = BABYLON.Vector3.Lerp(start, end, 0.5);
-        const distance = BABYLON.Vector3.Distance(start, end);
-        mid.y += distance * 0.2 * this.entanglement; // Arc height scales with entanglement
-
-        // Catmull-Rom curve for smooth path
-        const path = [];
-        const segments = 32;
-        for (let i = 0; i <= segments; i++) {
-          const t = i / segments;
-
-          // Quadratic Bezier curve
-          const point = new BABYLON.Vector3(
-            (1-t)*(1-t)*start.x + 2*(1-t)*t*mid.x + t*t*end.x,
-            (1-t)*(1-t)*start.y + 2*(1-t)*t*mid.y + t*t*end.y,
-            (1-t)*(1-t)*start.z + 2*(1-t)*t*mid.z + t*t*end.z
-          );
-          path.push(point);
-        }
-
-        // Create tube mesh
-        const radius = 2 + this.entanglement * 8; // Thicker when more entangled
-
+        // Use lightweight line system instead of heavy tube mesh
         try {
-          this.tubeMesh = BABYLON.MeshBuilder.CreateTube(
+          this.tubeMesh = BABYLON.MeshBuilder.CreateLines(
             'wormhole_' + Math.random().toString(36).substr(2, 9),
             {
-              path: path,
-              radius: radius,
-              tessellation: 16,
-              cap: BABYLON.Mesh.CAP_ALL,
+              points: [start, end],
               updatable: false
             },
             this.scene
           );
 
           if (!this.tubeMesh) {
-            console.error('CreateTube returned null/undefined');
+            console.error('CreateLines returned null/undefined');
             return;
           }
+
+          // Set line color (no materials needed - huge performance win!)
+          this.tubeMesh.color = new BABYLON.Color3(
+            0.3 + 0.5 * this.entanglement, // R (purple component)
+            0.5 + 0.3 * this.entanglement, // G (cyan component)
+            0.9                             // B (strong blue)
+          );
+
+          // Set line alpha
+          this.tubeMesh.alpha = 0.6 + 0.3 * this.entanglement;
+
         } catch (error) {
-          console.error('CreateTube failed:', error);
+          console.error('CreateLines failed:', error);
           return;
         }
-
-        // Material: Cyan-purple neural connection glow
-        const material = new BABYLON.StandardMaterial('wormholeMat_' + Math.random(), this.scene);
-
-        // Cyan/purple gradient for neural synapses
-        material.emissiveColor = new BABYLON.Color3(
-          0.3 + 0.5 * this.entanglement, // R (purple component)
-          0.5 + 0.3 * this.entanglement, // G (cyan component)
-          0.9                             // B (strong blue)
-        );
-
-        // Semi-transparent for better visualization
-        material.alpha = 0.4 + 0.3 * this.entanglement;
-        material.backFaceCulling = false; // Visible from both sides
-
-        // Solid for strong connections (>0.5), wireframe for weak
-        material.wireframe = this.entanglement < 0.5;
-
-        this.tubeMesh.material = material;
       }
 
       // Check if particle can tunnel through wormhole
