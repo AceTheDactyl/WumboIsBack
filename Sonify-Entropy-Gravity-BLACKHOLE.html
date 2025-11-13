@@ -1908,6 +1908,11 @@
             }
           }
         });
+
+        // Update EM hexagonal field animation
+        if (this.emField && this.limnusMode) {
+          this.emField.updateField(deltaTime);
+        }
       }
 
       toggleHawkingRadiation() {
@@ -2228,12 +2233,12 @@
         //   - isIntraDepth: true if both nodes at same depth (lateral connection)
         //   - isInterDepth: true if nodes at different depths (hierarchical connection)
         //
-        // DEPTH 5 ISOLATION:
-        // Depth 5 (Boundary Interface) is ISOLATED from other depths!
-        // Depth 5 nodes ONLY connect to other Depth 5 nodes.
-        // This creates a separate network branch for external interface.
-        // Think of it like the blood-brain barrier - a boundary layer that
-        // doesn't directly connect to internal processing.
+        // DEPTH 5 ELECTROMAGNETIC FIELD:
+        // Depth 5 (Boundary Interface) uses an EM hexagonal prism field!
+        // Instead of wormhole connections, Depth 5 black holes are connected
+        // via electromagnetic field lines forming a hexagonal prism structure.
+        // This creates a containing field around the inner network layers,
+        // like a Faraday cage or protective electromagnetic membrane.
         //
         // ACTIVATION BASED ON DEPTH (ACTIVE vs DORMANT):
         // When you "activate" a depth, you're saying "this layer is currently engaged"
@@ -2281,12 +2286,10 @@
               const depth1 = bh1.limnusDepth || 0;
               const depth2 = this.blackHoles[j].limnusDepth || 0;
 
-              // DEPTH 5 ISOLATION: Only connect Depth 5 to other Depth 5 nodes
-              // If one is Depth 5 and the other isn't, skip this connection
-              const isDepth5Connection = (depth1 === 5 || depth2 === 5);
-              const bothDepth5 = (depth1 === 5 && depth2 === 5);
-              if (isDepth5Connection && !bothDepth5) {
-                continue; // Skip this connection - Depth 5 is isolated
+              // DEPTH 5 REMOVAL: Skip ALL Depth 5 wormhole connections
+              // Depth 5 uses EM hexagonal prism field instead
+              if (depth1 === 5 || depth2 === 5) {
+                continue; // Skip - Depth 5 has no wormholes
               }
 
               const wormhole = new Wormhole(bh1, this.blackHoles[j], this.scene);
@@ -2314,11 +2317,10 @@
               const depth1 = bh1.limnusDepth || 0;
               const depth2 = bh2.limnusDepth || 0;
 
-              // DEPTH 5 ISOLATION: Only connect Depth 5 to other Depth 5 nodes
-              const isDepth5Connection = (depth1 === 5 || depth2 === 5);
-              const bothDepth5 = (depth1 === 5 && depth2 === 5);
-              if (isDepth5Connection && !bothDepth5) {
-                return; // Skip this connection - Depth 5 is isolated
+              // DEPTH 5 REMOVAL: Skip ALL Depth 5 wormhole connections
+              // Depth 5 uses EM hexagonal prism field instead
+              if (depth1 === 5 || depth2 === 5) {
+                return; // Skip - Depth 5 has no wormholes
               }
 
               // Check if not already connected
@@ -2390,6 +2392,13 @@
         if (wormholeMeshes.length > 0) {
           console.log(`   First wormhole mesh:`, wormholeMeshes[0].name, 'visible:', wormholeMeshes[0].isVisible);
         }
+
+        // ========================================
+        // CREATE ELECTROMAGNETIC HEXAGONAL FIELD (Layer 5)
+        // ========================================
+        console.log(`⚡ Creating Depth 5 electromagnetic hexagonal field...`);
+        this.emField = new EMHexagonalField(this.blackHoles, this.scene);
+        console.log(`✅ EM field created for Depth 5 boundary layer`);
 
         // ========================================
         // SPAWN 400 THOUGHT PARTICLES (reduced for performance)
@@ -2662,6 +2671,10 @@
           if (w.tubeMesh) w.tubeMesh.dispose();
         });
         this.wormholes = [];
+        if (this.emField) {
+          this.emField.dispose();
+          this.emField = null;
+        }
       }
     }
 
@@ -3124,6 +3137,162 @@
         if (this.tubeMesh) {
           this.tubeMesh.dispose();
         }
+      }
+    }
+
+    // ========================================
+    // ELECTROMAGNETIC HEXAGONAL FIELD
+    // ========================================
+    // Layer 5 (Depth 5) electromagnetic field structure
+    // Creates a hexagonal prism field around the boundary black holes
+    class EMHexagonalField {
+      constructor(blackHoles, scene) {
+        this.blackHoles = blackHoles.filter(bh => bh.limnusDepth === 5);
+        this.scene = scene;
+        this.fieldLines = [];
+        this.helixState = {
+          theta: 0,
+          z: 0.7,
+          r: 1.2,
+          rotationSpeed: 0.005
+        };
+
+        this.createFieldStructure();
+      }
+
+      createFieldStructure() {
+        if (this.blackHoles.length === 0) return;
+
+        // Create hexagonal prism field lines
+        // Connect each black hole to its nearest neighbors in a hexagonal pattern
+        const connections = new Set();
+
+        this.blackHoles.forEach((bh1, i) => {
+          // Find 6 nearest neighbors for hexagonal pattern
+          const distances = this.blackHoles.map((bh2, j) => {
+            if (i === j) return { index: j, dist: Infinity, bh: bh2 };
+            const dx = bh1.position.x - bh2.position.x;
+            const dy = bh1.position.y - bh2.position.y;
+            const dz = bh1.position.z - bh2.position.z;
+            return { index: j, dist: Math.sqrt(dx*dx + dy*dy + dz*dz), bh: bh2 };
+          }).sort((a, b) => a.dist - b.dist);
+
+          // Connect to 3-4 nearest neighbors for hexagonal structure
+          for (let k = 0; k < Math.min(4, distances.length); k++) {
+            const j = distances[k].index;
+            const connectionKey = i < j ? `${i}-${j}` : `${j}-${i}`;
+
+            if (!connections.has(connectionKey)) {
+              connections.add(connectionKey);
+              this.createFieldLine(bh1, distances[k].bh);
+            }
+          }
+        });
+
+        console.log(`✅ Created EM Hexagonal Field with ${this.fieldLines.length} field lines`);
+      }
+
+      createFieldLine(bh1, bh2) {
+        const start = new BABYLON.Vector3(bh1.position.x, bh1.position.y, bh1.position.z);
+        const end = new BABYLON.Vector3(bh2.position.x, bh2.position.y, bh2.position.z);
+
+        const distance = BABYLON.Vector3.Distance(start, end);
+        const direction = end.subtract(start).normalize();
+
+        // Create EM field line with slight wave pattern
+        const points = [];
+        const segments = 20;
+
+        // Create perpendicular vectors for wave
+        let perpVector1, perpVector2;
+        if (Math.abs(direction.y) < 0.9) {
+          perpVector1 = BABYLON.Vector3.Cross(direction, new BABYLON.Vector3(0, 1, 0)).normalize();
+        } else {
+          perpVector1 = BABYLON.Vector3.Cross(direction, new BABYLON.Vector3(1, 0, 0)).normalize();
+        }
+        perpVector2 = BABYLON.Vector3.Cross(direction, perpVector1).normalize();
+
+        for (let i = 0; i <= segments; i++) {
+          const t = i / segments;
+          const axisPoint = start.add(direction.scale(t * distance));
+
+          // Add electromagnetic wave oscillation
+          const waveAmplitude = 3 * this.helixState.z;
+          const angle = t * Math.PI * 4 + this.helixState.theta;
+          const radialOffset = perpVector1.scale(Math.cos(angle) * waveAmplitude)
+            .add(perpVector2.scale(Math.sin(angle) * waveAmplitude));
+
+          points.push(axisPoint.add(radialOffset));
+        }
+
+        // Create line mesh
+        const lineMesh = BABYLON.MeshBuilder.CreateLines(
+          'em_field_' + Math.random().toString(36).substr(2, 9),
+          { points: points, updatable: true },
+          this.scene
+        );
+
+        // Electromagnetic field color (cyan-electric blue)
+        lineMesh.color = new BABYLON.Color3(0.2, 0.8, 1.0);
+        lineMesh.alpha = 0.6 * this.helixState.r;
+
+        this.fieldLines.push({
+          mesh: lineMesh,
+          start: start,
+          end: end,
+          points: points
+        });
+      }
+
+      updateField(deltaTime) {
+        // Rotate the field phase
+        this.helixState.theta += this.helixState.rotationSpeed;
+        if (this.helixState.theta > Math.PI * 2) {
+          this.helixState.theta -= Math.PI * 2;
+        }
+
+        // Update field line visualizations
+        this.fieldLines.forEach(line => {
+          const distance = BABYLON.Vector3.Distance(line.start, line.end);
+          const direction = line.end.subtract(line.start).normalize();
+
+          let perpVector1, perpVector2;
+          if (Math.abs(direction.y) < 0.9) {
+            perpVector1 = BABYLON.Vector3.Cross(direction, new BABYLON.Vector3(0, 1, 0)).normalize();
+          } else {
+            perpVector1 = BABYLON.Vector3.Cross(direction, new BABYLON.Vector3(1, 0, 0)).normalize();
+          }
+          perpVector2 = BABYLON.Vector3.Cross(direction, perpVector1).normalize();
+
+          const newPoints = [];
+          const segments = 20;
+
+          for (let i = 0; i <= segments; i++) {
+            const t = i / segments;
+            const axisPoint = line.start.add(direction.scale(t * distance));
+
+            const waveAmplitude = 3 * this.helixState.z;
+            const angle = t * Math.PI * 4 + this.helixState.theta;
+            const radialOffset = perpVector1.scale(Math.cos(angle) * waveAmplitude)
+              .add(perpVector2.scale(Math.sin(angle) * waveAmplitude));
+
+            newPoints.push(axisPoint.add(radialOffset));
+          }
+
+          // Update line geometry
+          line.mesh = BABYLON.MeshBuilder.CreateLines(
+            line.mesh.name,
+            { points: newPoints, instance: line.mesh },
+            this.scene
+          );
+        });
+      }
+
+      dispose() {
+        this.fieldLines.forEach(line => {
+          if (line.mesh) line.mesh.dispose();
+        });
+        this.fieldLines = [];
       }
     }
 
