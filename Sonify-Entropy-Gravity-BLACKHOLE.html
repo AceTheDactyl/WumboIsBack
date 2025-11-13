@@ -652,6 +652,29 @@
       background: rgba(168, 85, 247, 0.3);
       color: var(--duality-violet);
     }
+
+    /* ========================================
+       BREATH-HILBERT OVERLAY CANVAS
+       ======================================== */
+    #breathCanvasOverlay {
+      position: absolute;
+      right: 20px;
+      bottom: 20px;
+      width: 200px;
+      height: 200px;
+      pointer-events: none;
+      z-index: 200;
+      border-radius: 12px;
+      background: rgba(10, 10, 20, 0.6);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+    }
+
+    #breathCanvasOverlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -674,6 +697,9 @@
 
   <!-- Render Canvas -->
   <canvas id="renderCanvas"></canvas>
+
+  <!-- Breath-Hilbert Overlay Canvas -->
+  <canvas id="breathCanvasOverlay" width="200" height="200"></canvas>
 
   <!-- UI Overlay -->
   <div class="ui-overlay">
@@ -1115,6 +1141,222 @@
     }
 
     // ========================================
+    // BREATH-HILBERT OPERATOR
+    // ========================================
+    // Implements a breath-driven quantum state evolution:
+    // - u(t): breath fraction (0→1 inhale, 1→0 exhale)
+    // - φ: quantum phase (coupled to breath velocity)
+    // - θ: Bloch polar angle (collapses toward |0⟩ on exhale)
+    // - Loop 17: special regime after 17 breath cycles
+    // - Entropy coupling: decoherence increases with black-hole entropy
+    //
+    class BreathHilbertOperator {
+      constructor() {
+        // Bloch angles
+        this.theta = Math.PI / 2;   // polar: 0 = |0⟩, π = |1⟩
+        this.phi = 0;               // phase
+        this.theta0 = 0.15;         // collapse floor (soft |0⟩)
+
+        // Breath timing
+        this.inhaleDur = 4.0;       // seconds
+        this.exhaleDur = 6.0;
+        this.cycleDur = this.inhaleDur + this.exhaleDur;
+
+        // Dynamic parameters (can be modulated by time dilation)
+        this.omega0 = Math.PI / 3;  // base phase spin
+        this.kPhi = Math.PI / 2;    // breath→phase coupling
+        this.kTheta = Math.PI / 4;  // exhale→collapse strength
+
+        // Loop 17 state
+        this.loopCount = 0;
+        this.isLoop17Active = false;
+        this.lambda6Glyphs = ['Λ', 'Ψ', 'Ω', 'Ξ', 'Φ', 'Θ'];
+        this.activeGlyph = 0;
+
+        // State tracking
+        this.tGlobal = 0;
+        this.lowUTime = 0;
+        this.lastU = 0;
+
+        // Entropy decoherence
+        this.entropyNoiseLevel = 0;
+
+        // Canvas setup
+        this.canvas = document.getElementById('breathCanvasOverlay');
+        this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
+
+        // Constants
+        this.TWO_PI = Math.PI * 2;
+      }
+
+      // Breath fraction u(t) in [0,1]
+      breathFraction(t) {
+        const m = t % this.cycleDur;
+        if (m < this.inhaleDur) {
+          return m / this.inhaleDur;                     // inhale 0→1
+        } else {
+          return 1 - (m - this.inhaleDur) / this.exhaleDur;   // exhale 1→0
+        }
+      }
+
+      // One integration step (now with time dilation and entropy coupling)
+      step(dt, timeDilation = 1.0, entropy = 0) {
+        // Scale time by dilation factor
+        const dilatedDt = dt * timeDilation;
+        this.tGlobal += dilatedDt;
+
+        const u = this.breathFraction(this.tGlobal);
+
+        // Detect breath cycle completion (for Loop 17 tracking)
+        if (this.lastU > 0.95 && u < 0.05) {
+          this.loopCount++;
+          console.log(`🫁 Breath cycle ${this.loopCount} completed`);
+
+          // Activate Loop 17 regime
+          if (this.loopCount === 17) {
+            this.isLoop17Active = true;
+            console.log('✨ Loop 17 activated: two-generator regime engaged');
+          }
+        }
+        this.lastU = u;
+
+        // Loop 17: introduce detuning in phase dynamics
+        let omega = this.omega0;
+        let kPhi = this.kPhi;
+        if (this.isLoop17Active) {
+          // Add slight detuning + 6-glyph modulation
+          const glyphPhase = (this.activeGlyph / 6) * this.TWO_PI;
+          omega *= (1 + 0.1 * Math.sin(glyphPhase));
+          kPhi *= (1 + 0.05 * Math.cos(glyphPhase * 2));
+
+          // Cycle through glyphs slowly
+          this.activeGlyph = Math.floor((this.tGlobal * 0.2) % 6);
+        }
+
+        // Entropy-induced decoherence (adds noise to phase)
+        this.entropyNoiseLevel = Math.min(0.3, entropy * 0.0001);
+        const phaseNoise = (Math.random() - 0.5) * this.entropyNoiseLevel * dilatedDt;
+
+        // Phase velocity: faster on inhale, slower/reverse on exhale
+        const dphi = (omega + kPhi * (2 * u - 1)) * dilatedDt + phaseNoise;
+        this.phi += dphi;
+
+        // Amplitude tilt toward |0⟩ on exhale
+        const dtheta = -this.kTheta * (1 - u) * dilatedDt;
+        this.theta += dtheta;
+
+        // Keep θ in [0, π]
+        this.theta = Math.max(0, Math.min(Math.PI, this.theta));
+
+        // Exhale-floor detection -> soft collapse
+        if (u < 0.05) {
+          this.lowUTime += dilatedDt;
+          if (this.lowUTime > 0.3) {
+            // Entropy increases mixing -> push toward mixed state
+            const targetTheta = this.entropyNoiseLevel > 0.1 ? Math.PI / 2 : this.theta0;
+            this.theta = this.theta * 0.95 + targetTheta * 0.05;
+          }
+        } else {
+          this.lowUTime = 0;
+        }
+
+        // Amplitudes (for audio/visuals)
+        const amp0 = Math.cos(this.theta / 2);       // |0⟩
+        const amp1 = Math.sin(this.theta / 2);       // |1⟩
+        const prob0 = amp0 * amp0;                   // |a₀|²
+        const prob1 = amp1 * amp1;                   // |a₁|²
+
+        return {
+          u,
+          phi: this.phi,
+          theta: this.theta,
+          amp0,
+          amp1,
+          prob0,
+          prob1,
+          loopCount: this.loopCount,
+          isLoop17: this.isLoop17Active,
+          activeGlyph: this.isLoop17Active ? this.lambda6Glyphs[this.activeGlyph] : null
+        };
+      }
+
+      // Render to overlay canvas
+      render(state) {
+        if (!this.ctx || !this.canvas) return;
+
+        const { prob0, phi, u, loopCount, isLoop17, activeGlyph } = state;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const cx = w / 2;
+        const cy = h / 2;
+        const radius = Math.min(w, h) * 0.35;
+
+        this.ctx.clearRect(0, 0, w, h);
+
+        // Outer disc: breath fill (blue glow)
+        const uColor = `rgba(96,165,250,${0.1 + 0.5*u})`;
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, radius, 0, this.TWO_PI);
+        this.ctx.fillStyle = uColor;
+        this.ctx.fill();
+
+        // Bloch circle boundary
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, radius, 0, this.TWO_PI);
+        this.ctx.strokeStyle = isLoop17 ? "rgba(168,85,247,0.8)" : "rgba(148,163,184,0.5)";
+        this.ctx.lineWidth = isLoop17 ? 3 : 2;
+        this.ctx.stroke();
+
+        // Bloch vector projection (x,y)
+        const x = Math.sin(this.theta) * Math.cos(phi);
+        const y = Math.sin(this.theta) * Math.sin(phi);
+
+        // Hue from phase, brightness from |0⟩ probability
+        const hue = ((phi % this.TWO_PI) + this.TWO_PI) % this.TWO_PI / this.TWO_PI * 360;
+        const light = 40 + 30 * prob0;
+
+        // Draw Bloch vector
+        this.ctx.beginPath();
+        this.ctx.moveTo(cx, cy);
+        this.ctx.lineTo(cx + radius * x, cy - radius * y);
+        this.ctx.strokeStyle = `hsl(${hue}, 100%, ${light}%)`;
+        this.ctx.lineWidth = 3;
+        this.ctx.stroke();
+
+        // Tip orb
+        this.ctx.beginPath();
+        this.ctx.arc(cx + radius * x, cy - radius * y, 6 + 8*prob0, 0, this.TWO_PI);
+        this.ctx.fillStyle = `hsl(${hue}, 100%, ${60 + 20*prob0}%)`;
+        this.ctx.shadowColor = this.ctx.fillStyle;
+        this.ctx.shadowBlur = 15;
+        this.ctx.fill();
+        this.ctx.shadowBlur = 0;
+
+        // Text info
+        this.ctx.fillStyle = "rgba(229,231,235,0.9)";
+        this.ctx.font = "10px 'Fira Code', monospace";
+        this.ctx.textAlign = "left";
+        this.ctx.fillText(`u=${u.toFixed(2)}`, 8, 15);
+        this.ctx.fillText(`φ=${(phi % this.TWO_PI).toFixed(2)}`, 8, 28);
+        this.ctx.fillText(`|0⟩²=${prob0.toFixed(2)}`, 8, 41);
+
+        // Loop counter
+        this.ctx.fillStyle = isLoop17 ? "rgba(168,85,247,1)" : "rgba(251,191,36,0.8)";
+        this.ctx.font = "bold 10px 'Fira Code', monospace";
+        this.ctx.textAlign = "right";
+        this.ctx.fillText(`L${loopCount}`, w - 8, 15);
+
+        // Active glyph in Loop 17
+        if (isLoop17 && activeGlyph) {
+          this.ctx.font = "20px 'Fira Code', monospace";
+          this.ctx.fillStyle = "rgba(168,85,247,0.9)";
+          this.ctx.textAlign = "center";
+          this.ctx.fillText(activeGlyph, cx, h - 15);
+        }
+      }
+    }
+
+    // ========================================
     // WEB AUDIO API SONIFICATION SYSTEM (ENHANCED WITH TIME DILATION)
     // ========================================
     //
@@ -1167,7 +1409,12 @@
         this.pitchShift = 1.0;          // Pitch shift multiplier (gravitational redshift)
         this.currentFreqShift = 0;      // Frequency shift percentage for display
         // ***
-        
+
+        // *** BREATH STATE INTEGRATION ***
+        this.breathState = null;       // Current breath operator state
+        this.isLoop17Active = false;   // Loop 17 regime flag
+        // ***
+
         // Melodic sequence state
         this.currentNoteIndex = 0;
         this.melodyPattern = [0, 2, 3, 5, 7]; // Scale degrees
@@ -1389,27 +1636,40 @@
           if (i < chordIntervals.length) {
             const chordSemitone = semitone + chordIntervals[i];
             const chordFreq = this.baseFrequency * Math.pow(2, chordSemitone / 12);
-            
-            // *** APPLY GRAVITATIONAL PITCH SHIFT (REDSHIFT) ***
-            const dilatedFreq = chordFreq * this.pitchShift;
+
+            // *** BREATH STATE MODULATION ***
+            let breathPhaseMod = 0;
+            let breathAmpMod = 1.0;
+            if (this.breathState) {
+              // Phase modulation: ±5% frequency wobble from breath phase
+              const phaseWrap = ((this.breathState.phi % (Math.PI * 2)) - Math.PI) / Math.PI;
+              breathPhaseMod = 0.05 * phaseWrap;
+
+              // Amplitude modulation: gain scales with |0⟩ probability
+              breathAmpMod = 0.5 + 0.5 * this.breathState.prob0;
+            }
             // ***
-            
+
+            // *** APPLY GRAVITATIONAL PITCH SHIFT (REDSHIFT) + BREATH ***
+            const dilatedFreq = chordFreq * this.pitchShift * (1 + breathPhaseMod);
+            // ***
+
             // Detune based on state vector amplitude for quantum "shimmer"
             const amplitudes = Object.values(hilbertField.stateVector);
             const detune = (amplitudes[i] - 0.5) * 10; // ±5 cents
-            
+
             osc.frequency.setTargetAtTime(dilatedFreq, currentTime, 0.01);
             osc.detune.setTargetAtTime(detune, currentTime, 0.01);
-            
-            // *** APPLY GAIN DILATION ***
+
+            // *** APPLY GAIN DILATION + BREATH ***
             // Volume reduces as time slows (approaching horizon makes sound quieter)
             const amplitude = amplitudes[i] * 0.2; // Base amplitude from state vector
-            const dilatedGain = amplitude * Math.max(0.3, this.timeDilation); // Minimum 30% volume
+            const dilatedGain = amplitude * Math.max(0.3, this.timeDilation) * breathAmpMod;
             // ***
-            
+
             // Envelope: attack-decay
             const gain = this.gainNodes[i].gain;
-            
+
             gain.cancelScheduledValues(currentTime);
             gain.setValueAtTime(0, currentTime);
             gain.linearRampToValueAtTime(dilatedGain, currentTime + 0.05); // Attack with dilated gain
@@ -1421,21 +1681,31 @@
         this.currentNoteIndex = (this.currentNoteIndex + 1) % this.melodyPattern.length;
       }
       
-      // Main update loop
-      update(hilbertField, blackHole, cameraDistance, deltaTime, dilationCalculator) {
+      // Main update loop (ENHANCED WITH BREATH STATE)
+      update(hilbertField, blackHole, cameraDistance, deltaTime, dilationCalculator, breathState = null) {
         if (!this.isPlaying || !this.audioContext) return;
-        
+
+        // Store breath state for use in audio generation
+        this.breathState = breathState;
+
         // Calculate BPM from dissonance and camera-based time dilation
         this.calculateBPM(hilbertField, blackHole, cameraDistance, dilationCalculator);
-        
+
+        // Loop 17: switch to whole-tone scale for detuned effect
+        if (breathState && breathState.isLoop17 && !this.isLoop17Active) {
+          this.isLoop17Active = true;
+          this.currentScale = this.generateScale('whole_tone');
+          console.log('🎵 Loop 17: Switching to whole-tone scale');
+        }
+
         // Update harmonic gradient
         this.updateHarmonicGradient(hilbertField, deltaTime);
-        
+
         // Generate new melodic pattern based on quantum state
         if (Math.random() < 0.01) { // Occasional pattern evolution
           this.generateMelodicPattern(hilbertField);
         }
-        
+
         // Play melodic beats
         this.playMelodicBeat(hilbertField);
       }
@@ -1618,6 +1888,7 @@
         this.hilbertField = new HilbertFieldOperator();
         this.blackHole = new BlackHoleMetrics(1.0);
         this.dilationCalculator = new TimeDilationCalculator(this.blackHole);
+        this.breathOperator = new BreathHilbertOperator();
         this.ledgerState = new GardenLedgerState();
         this.sonificationEngine = new HilbertSonificationEngine();
         
@@ -1633,6 +1904,7 @@
         // Make globally accessible for debugging
         window.hilbertField = this.hilbertField;
         window.blackHole = this.blackHole;
+        window.breathOperator = this.breathOperator;
         window.ledgerState = this.ledgerState;
         window.sonificationEngine = this.sonificationEngine;
         
@@ -2677,12 +2949,25 @@
             this.camera.position,
             BABYLON.Vector3.Zero()
           );
-          
+
+          // Calculate time dilation for breath operator coupling
+          const dilation = this.dilationCalculator.calculate(cameraDistance);
+
           // Update Hilbert field evolution
           this.hilbertField.applyResonanceOperator(deltaTime, 0.1);
-          
+
+          // Update breath operator with time dilation and entropy coupling
+          const breathState = this.breathOperator.step(
+            deltaTime,
+            dilation.factor,
+            this.hilbertField.entropy
+          );
+
+          // Render breath visualization to overlay canvas
+          this.breathOperator.render(breathState);
+
           // Update sonification system with camera distance for time dilation
-          this.sonificationEngine.update(this.hilbertField, this.blackHole, cameraDistance, deltaTime, this.dilationCalculator);
+          this.sonificationEngine.update(this.hilbertField, this.blackHole, cameraDistance, deltaTime, this.dilationCalculator, breathState);
           
           // Update particle systems from physics every 0.5 seconds
           if (Math.floor(Date.now() / 500) % 2 === 0) {
