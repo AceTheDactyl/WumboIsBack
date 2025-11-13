@@ -2321,22 +2321,32 @@
           if (isActive) {
             // Active: strong entanglement and fully visible
             wormhole.entanglement = 0.7;
-            if (wormhole.tubeMesh) {
-              wormhole.tubeMesh.isVisible = true;
-              wormhole.tubeMesh.visibility = 1.0;
-            }
             // Recreate visual if needed
             if (!wormhole.tubeMesh) {
               wormhole.updateVisual();
+            }
+            if (wormhole.tubeMesh) {
+              wormhole.tubeMesh.isVisible = true;
+              wormhole.tubeMesh.visibility = 1.0;
             }
           } else {
             // Dormant: very weak entanglement, ghostly appearance
             // Instead of disappearing, wormholes remain visible but dim
             // This shows the potential connections waiting to be activated
             wormhole.entanglement = 0.05;
+
+            // Recreate visual if needed for dormant state
+            if (!wormhole.tubeMesh) {
+              wormhole.updateVisual();
+            }
+
             if (wormhole.tubeMesh) {
               wormhole.tubeMesh.isVisible = true;
-              wormhole.tubeMesh.visibility = 0.12; // Faint ghost - dormant but present
+              wormhole.tubeMesh.visibility = 0.25; // Increased to 25% for better visibility
+              // Also reduce alpha/opacity if material supports it
+              if (wormhole.tubeMesh.material) {
+                wormhole.tubeMesh.material.alpha = 0.25;
+              }
             }
           }
         });
