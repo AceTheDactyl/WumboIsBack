@@ -1697,8 +1697,7 @@
         // LAYER 1: CORE (1 black hole at origin)
         // Central hub - largest mass
         // ========================================
-        originBlackHole.mass = 5e30; // 2.5 solar masses
-        originBlackHole.updateDerivedProperties();
+        originBlackHole.setMass(2.5); // 2.5 solar masses
 
         // ========================================
         // LAYER 2: INNER RING (6 black holes)
@@ -1719,7 +1718,7 @@
               y: dir[1] * layer2Radius,
               z: dir[2] * layer2Radius
             },
-            4e30 // 2.0 solar masses
+            2.0 // 2.0 solar masses
           );
           this.blackHoles.push(bh);
         });
@@ -1745,7 +1744,7 @@
               y: (v[1] / len) * layer3Radius,
               z: (v[2] / len) * layer3Radius
             },
-            3e30 // 1.5 solar masses
+            1.5 // 1.5 solar masses
           );
           this.blackHoles.push(bh);
         });
@@ -1776,7 +1775,7 @@
               y: (v[1] / len) * layer4Radius,
               z: (v[2] / len) * layer4Radius
             },
-            2e30 // 1.0 solar masses
+            1.0 // 1.0 solar masses
           );
           this.blackHoles.push(bh);
         });
@@ -1820,7 +1819,7 @@
                 y: (v[1] / len) * layer5Radius,
                 z: (v[2] / len) * layer5Radius
               },
-              1.5e30 // 0.75 solar masses
+              0.75 // 0.75 solar masses
             );
             this.blackHoles.push(bh);
           }
@@ -4270,29 +4269,42 @@
 
         // LIMNUS Neural Network initialization
         document.getElementById('init-limnus').addEventListener('click', () => {
+          console.log('🧠 LIMNUS button clicked!');
           const btn = document.getElementById('init-limnus');
           btn.textContent = '⏳ Initializing LIMNUS...';
           btn.disabled = true;
 
           // Use setTimeout to allow UI to update
           setTimeout(() => {
-            this.physicsWorld.initializeLIMNUS();
+            try {
+              console.log('🧠 Starting LIMNUS initialization...');
+              this.physicsWorld.initializeLIMNUS();
 
-            // Update UI stats
-            document.getElementById('limnus-nodes').textContent = this.physicsWorld.blackHoles.length;
-            document.getElementById('limnus-synapses').textContent = this.physicsWorld.wormholes.length;
-            document.getElementById('limnus-thoughts').textContent = this.physicsWorld.particles.length;
-            this.updateParticleStats();
+              // Update UI stats
+              document.getElementById('limnus-nodes').textContent = this.physicsWorld.blackHoles.length;
+              document.getElementById('limnus-synapses').textContent = this.physicsWorld.wormholes.length;
+              document.getElementById('limnus-thoughts').textContent = this.physicsWorld.particles.length;
+              this.updateParticleStats();
 
-            // Update button
-            btn.textContent = '✅ LIMNUS Active';
-            btn.style.background = '#16a34a';
+              // Update button
+              btn.textContent = '✅ LIMNUS Active';
+              btn.style.background = '#16a34a';
 
-            // Reset camera to see full network
-            this.camera.position = new BABYLON.Vector3(0, 0, 1500);
-            this.camera.setTarget(BABYLON.Vector3.Zero());
+              // Reset camera to see full network
+              console.log('🧠 Setting camera position to (0, 0, 1500)');
+              this.camera.position = new BABYLON.Vector3(0, 0, 1500);
+              this.camera.setTarget(BABYLON.Vector3.Zero());
 
-            console.log('🧠 LIMNUS Neural Network is now active');
+              console.log('🧠 LIMNUS Neural Network is now active');
+              console.log(`   Nodes: ${this.physicsWorld.blackHoles.length}`);
+              console.log(`   Wormholes: ${this.physicsWorld.wormholes.length}`);
+              console.log(`   Particles: ${this.physicsWorld.particles.length}`);
+            } catch (error) {
+              console.error('❌ LIMNUS initialization error:', error);
+              btn.textContent = '❌ LIMNUS Failed';
+              btn.style.background = '#dc2626';
+              btn.disabled = false;
+            }
           }, 100);
         });
 
