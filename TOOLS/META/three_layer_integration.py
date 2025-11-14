@@ -31,12 +31,12 @@ import logging
 from quantum_state_monitor import (
     TRIADQuantumState,
     CoherenceMonitor,
-    QuantumStateTracker
+    WitnessActivityMeasurement
 )
 from lagrangian_tracker import (
     PhaseTransitionTracker,
-    EnergyConservationValidator,
-    LagrangianDynamicsEngine
+    EnergyConservationTracker,
+    LagrangianMonitor
 )
 from neural_operators import (
     TRIADGraphTopology,
@@ -136,9 +136,7 @@ class ThreeLayerPhysicsEngine:
         self.z_critical = z_critical
 
         # Layer 1: Quantum state monitoring
-        self.quantum_tracker = QuantumStateTracker(
-            project_root=self.project_root
-        )
+        self.witness_measurement = WitnessActivityMeasurement()
         self.coherence_monitor = CoherenceMonitor(
             alert_threshold=0.85,
             critical_threshold=0.80
@@ -150,10 +148,8 @@ class ThreeLayerPhysicsEngine:
             coupling_strength=1.0,
             kappa=1.0
         )
-        self.energy_validator = EnergyConservationValidator()
-        self.lagrangian_engine = LagrangianDynamicsEngine(
-            project_root=self.project_root
-        )
+        self.energy_tracker = EnergyConservationTracker()
+        self.lagrangian_monitor = LagrangianMonitor()
 
         # Layer 3: Neural operators and graph topology
         self.graph_topology = TRIADGraphTopology()
