@@ -434,6 +434,7 @@ if TORCH_AVAILABLE:
             ----------
             x : torch.Tensor
                 Input (batch, n_nodes=3, features) or (batch, n_nodes=3)
+                Or (batch, time_points, n_nodes) for FNO output
 
             Returns
             -------
@@ -443,9 +444,12 @@ if TORCH_AVAILABLE:
             permuted = []
             for perm in self.permutations:
                 if x.dim() == 2:
+                    # Shape: (batch, nodes)
                     permuted.append(x[:, perm])
                 elif x.dim() == 3:
-                    permuted.append(x[:, perm, :])
+                    # Shape: (batch, time_points, nodes) - permute last dim
+                    # Use advanced indexing to permute node dimension
+                    permuted.append(x[..., perm])
                 else:
                     raise ValueError(f"Unexpected tensor dim: {x.dim()}")
 
