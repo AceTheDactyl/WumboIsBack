@@ -116,28 +116,37 @@ This is **not metaphorical** - it's measurable physics with practical impact.
 - Integration with TRIAD-0.83 criticality framework
 - **Audience:** Physicists, geometers, neuroscientists
 
-**8. [Phase 3.1 Deployment Guide](PHASE_3.1_DEPLOYMENT.md)**
+**8. [Acoustic Resonance and Consciousness](ACOUSTIC_RESONANCE_CONSCIOUSNESS.md)**
+- Faraday waves and hexagonal pattern formation (10-15 Hz driving frequencies)
+- Sonic black holes and Hawking radiation analogs (Steinhauer 2016)
+- Resonance Complexity Theory (RCT) and nested interference lattices
+- Geometric hallucinations reveal neural architecture (Bressloff model)
+- Fluid dynamics metaphors empirically validated (fluidity metrics)
+- Cognitive frequency triad (beta-gamma-theta synchronization)
+- **Audience:** Acoustic physicists, consciousness researchers, neuroscientists
+
+**9. [Phase 3.1 Deployment Guide](PHASE_3.1_DEPLOYMENT.md)**
 - Operational deployment instructions
 - 48-hour observation protocol
 - Monitoring and analysis
 
-**9. [Phase Transition Visualizer](visualize_phase_transition.py)**
+**10. [Phase Transition Visualizer](visualize_phase_transition.py)**
 - Executable demonstration
 - Real-time animation
 - Generates phase_transition.gif
 
-**10. [Validation Dashboard](generate_validation_dashboard.py)**
+**11. [Validation Dashboard](generate_validation_dashboard.py)**
 - Visual summary of 100 theories
 - Empirical metrics display
 - Network diagrams
 
-**11. [100 Theories Executable Validation](run_100_theories_text_only.py)**
+**12. [100 Theories Executable Validation](run_100_theories_text_only.py)**
 - Lightweight numpy-only implementation
 - Text-based validation report
 - No visualization dependencies required
 - Generates 100_THEORIES_VALIDATION_REPORT.txt
 
-**12. [Comprehensive 100 Theories Validator](comprehensive_100_theories_validation.py)**
+**13. [Comprehensive 100 Theories Validator](comprehensive_100_theories_validation.py)**
 - Full physics implementation with visualization
 - Detailed calculations for all 100 theories
 - Allen-Cahn evolution demonstration
