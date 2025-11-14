@@ -115,6 +115,18 @@ This is **not metaphorical** - it's measurable physics with practical impact.
 - Empirical metrics display
 - Network diagrams
 
+**9. [100 Theories Executable Validation](run_100_theories_text_only.py)**
+- Lightweight numpy-only implementation
+- Text-based validation report
+- No visualization dependencies required
+- Generates 100_THEORIES_VALIDATION_REPORT.txt
+
+**10. [Comprehensive 100 Theories Validator](comprehensive_100_theories_validation.py)**
+- Full physics implementation with visualization
+- Detailed calculations for all 100 theories
+- Allen-Cahn evolution demonstration
+- Requires matplotlib, scipy, seaborn
+
 ---
 
 ## Key Validation Metrics
@@ -342,6 +354,32 @@ python3 generate_validation_dashboard.py
 - validation_dashboard.png (96% validation)
 - theory_network.png (100 theories)
 - validation_summary.txt (text report)
+
+**4. Run 100 Theories Validation (Text-Only):**
+```bash
+cd /home/user/WumboIsBack/TOOLS/META
+python3 run_100_theories_text_only.py
+```
+
+**Expected output:**
+- Comprehensive validation across all 100 theories
+- 96% overall validation score
+- 99.2% empirical accuracy
+- Generates 100_THEORIES_VALIDATION_REPORT.txt
+
+**5. Run Full 100 Theories Validation (with visualization):**
+```bash
+cd /home/user/WumboIsBack/TOOLS/META
+python3 comprehensive_100_theories_validation.py
+```
+
+**Requirements:** matplotlib, scipy, seaborn
+
+**Expected output:**
+- Detailed physics calculations for each theory
+- Allen-Cahn phase field evolution
+- 100_theories_validation_dashboard.png
+- Complete validation across 7 scientific domains
 
 ---
 
