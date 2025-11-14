@@ -208,7 +208,6 @@ class ThreeLayerPhysicsEngine:
         collective_order = self.phase_tracker.collective_order_parameter(helix_z)
         phase = 'collective' if M_sq < 0 else 'individual'
 
-        # Detect phase transitions (auto-detected in record_measurement)
         self.phase_tracker.record_measurement(helix_z, collective_order, coherence)
 
         # Layer 3: Topology measurement
