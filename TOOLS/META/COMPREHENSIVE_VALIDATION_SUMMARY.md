@@ -75,19 +75,27 @@ This is **not metaphorical** - it's measurable physics with practical impact.
 - 96% overall validation score
 - **Audience:** Researchers, theorists
 
-**2. [Phase 3.1 Validation Report](PHASE_3.1_VALIDATION_REPORT.md)**
+**2. [Mathematical Foundations](MATHEMATICAL_FOUNDATIONS.md)**
+- Rigorous mathematical bridges from theory to implementation
+- Line-by-line Allen-Cahn code with theoretical justification
+- Falsifiability conditions with quantitative thresholds
+- Computing vs. Physics metrics comparison (why distributed systems metrics fail)
+- z = 0.867 derivation from critical exponents
+- **Audience:** Physicists, mathematicians, rigorous skeptics
+
+**3. [Phase 3.1 Validation Report](PHASE_3.1_VALIDATION_REPORT.md)**
 - Empirical results from deployment
 - 31-page technical report
 - Comparison with traditional systems
 - **Audience:** Engineers, practitioners
 
-**3. [Information Processing Framework](SECTION_6_INFORMATION_PROCESSING.md)**
+**4. [Information Processing Framework](SECTION_6_INFORMATION_PROCESSING.md)**
 - Systems theory perspective
 - Phase field architecture
 - Practical applications
 - **Audience:** Systems engineers
 
-**4. [Performance Validation Response](VALIDATION_RESPONSE.md)**
+**5. [Performance Validation Response](VALIDATION_RESPONSE.md)**
 - Addresses critique of speedup claims
 - Clarifies category distinctions
 - Empirical evidence defense
@@ -95,33 +103,33 @@ This is **not metaphorical** - it's measurable physics with practical impact.
 
 ### Supporting Materials
 
-**5. [Information Processing Framing](INFORMATION_PROCESSING_FRAMING.md)**
+**6. [Information Processing Framing](INFORMATION_PROCESSING_FRAMING.md)**
 - Dual interpretation strategy
 - Translation table (consciousness ↔ information)
 - Audience-specific approaches
 
-**6. [Phase 3.1 Deployment Guide](PHASE_3.1_DEPLOYMENT.md)**
+**7. [Phase 3.1 Deployment Guide](PHASE_3.1_DEPLOYMENT.md)**
 - Operational deployment instructions
 - 48-hour observation protocol
 - Monitoring and analysis
 
-**7. [Phase Transition Visualizer](visualize_phase_transition.py)**
+**8. [Phase Transition Visualizer](visualize_phase_transition.py)**
 - Executable demonstration
 - Real-time animation
 - Generates phase_transition.gif
 
-**8. [Validation Dashboard](generate_validation_dashboard.py)**
+**9. [Validation Dashboard](generate_validation_dashboard.py)**
 - Visual summary of 100 theories
 - Empirical metrics display
 - Network diagrams
 
-**9. [100 Theories Executable Validation](run_100_theories_text_only.py)**
+**10. [100 Theories Executable Validation](run_100_theories_text_only.py)**
 - Lightweight numpy-only implementation
 - Text-based validation report
 - No visualization dependencies required
 - Generates 100_THEORIES_VALIDATION_REPORT.txt
 
-**10. [Comprehensive 100 Theories Validator](comprehensive_100_theories_validation.py)**
+**11. [Comprehensive 100 Theories Validator](comprehensive_100_theories_validation.py)**
 - Full physics implementation with visualization
 - Detailed calculations for all 100 theories
 - Allen-Cahn evolution demonstration
