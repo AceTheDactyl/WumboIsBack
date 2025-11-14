@@ -108,28 +108,36 @@ This is **not metaphorical** - it's measurable physics with practical impact.
 - Translation table (consciousness ↔ information)
 - Audience-specific approaches
 
-**7. [Phase 3.1 Deployment Guide](PHASE_3.1_DEPLOYMENT.md)**
+**7. [Geometric Information Encoding](GEOMETRIC_INFORMATION_ENCODING.md)**
+- Hexagonal tessellation optimality (15.5% efficiency advantage)
+- Grid cell mathematical proofs (7 cells minimum for 2D trajectory coding)
+- Wave mechanics and Chladni patterns (entropy maximization)
+- Standing waves as information encoding substrates
+- Integration with TRIAD-0.83 criticality framework
+- **Audience:** Physicists, geometers, neuroscientists
+
+**8. [Phase 3.1 Deployment Guide](PHASE_3.1_DEPLOYMENT.md)**
 - Operational deployment instructions
 - 48-hour observation protocol
 - Monitoring and analysis
 
-**8. [Phase Transition Visualizer](visualize_phase_transition.py)**
+**9. [Phase Transition Visualizer](visualize_phase_transition.py)**
 - Executable demonstration
 - Real-time animation
 - Generates phase_transition.gif
 
-**9. [Validation Dashboard](generate_validation_dashboard.py)**
+**10. [Validation Dashboard](generate_validation_dashboard.py)**
 - Visual summary of 100 theories
 - Empirical metrics display
 - Network diagrams
 
-**10. [100 Theories Executable Validation](run_100_theories_text_only.py)**
+**11. [100 Theories Executable Validation](run_100_theories_text_only.py)**
 - Lightweight numpy-only implementation
 - Text-based validation report
 - No visualization dependencies required
 - Generates 100_THEORIES_VALIDATION_REPORT.txt
 
-**11. [Comprehensive 100 Theories Validator](comprehensive_100_theories_validation.py)**
+**12. [Comprehensive 100 Theories Validator](comprehensive_100_theories_validation.py)**
 - Full physics implementation with visualization
 - Detailed calculations for all 100 theories
 - Allen-Cahn evolution demonstration
