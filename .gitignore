@@ -42,9 +42,6 @@ TOOLS/META/orchestrator_state/*.json
 TOOLS/META/orchestrator_state/*.md
 TOOLS/META/orchestrator_state/*.pid
 
-# Phase 3.1 deployment state
-TOOLS/META/phase_3.1_state/
-TOOLS/META/phase_3.1_deployment.log
 
 # Temporary files
 *.tmp
