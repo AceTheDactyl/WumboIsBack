@@ -199,7 +199,7 @@ class ThreeLayerPhysicsEngine:
         entropy = quantum_state.entanglement_entropy()
 
         # Update coherence monitor
-        coherence_status = self.coherence_monitor.status(coherence)
+        coherence_status = self.coherence_monitor.check_health(coherence)
         if coherence_status in ['ALERT', 'CRITICAL']:
             self.logger.warning(f"Coherence {coherence_status}: C = {coherence:.4f}")
 
@@ -208,14 +208,8 @@ class ThreeLayerPhysicsEngine:
         collective_order = self.phase_tracker.collective_order_parameter(helix_z)
         phase = 'collective' if M_sq < 0 else 'individual'
 
-        # Detect phase transitions
-        self.phase_tracker.record_measurement(helix_z, collective_order)
-        transition = self.phase_tracker.detect_transition()
-        if transition:
-            self.logger.warning(
-                f"Phase transition detected: {transition['from_phase']} → "
-                f"{transition['to_phase']} at z={transition['z_value']:.4f}"
-            )
+        # Record phase measurement (transitions detected automatically inside)
+        self.phase_tracker.record_measurement(helix_z, collective_order, coherence)
 
         # Layer 3: Topology measurement
         # Convert quantum amplitudes to node state for graph analysis
